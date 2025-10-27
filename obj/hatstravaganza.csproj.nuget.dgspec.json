@@ -1,0 +1,83 @@
+{
+  "format": 1,
+  "restore": {
+    "/Users/tabitharowland/Documents/GitHub/hatstravaganza/hatstravaganza.csproj": {}
+  },
+  "projects": {
+    "/Users/tabitharowland/Documents/GitHub/hatstravaganza/hatstravaganza.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/Users/tabitharowland/Documents/GitHub/hatstravaganza/hatstravaganza.csproj",
+        "projectName": "tutorial",
+        "projectPath": "/Users/tabitharowland/Documents/GitHub/hatstravaganza/hatstravaganza.csproj",
+        "packagesPath": "/Users/tabitharowland/.nuget/packages/",
+        "outputPath": "/Users/tabitharowland/Documents/GitHub/hatstravaganza/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/Users/tabitharowland/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net6.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net6.0": {
+            "targetAlias": "net6.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.300"
+      },
+      "frameworks": {
+        "net6.0": {
+          "targetAlias": "net6.0",
+          "dependencies": {
+            "Pathoschild.Stardew.ModBuildConfig": {
+              "target": "Package",
+              "version": "[4.4.0, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Ref",
+              "version": "[6.0.36, 6.0.36]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Ref",
+              "version": "[6.0.36, 6.0.36]"
+            }
+          ],
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.306/RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

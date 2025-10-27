@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "uczfpudPD9g=",
+  "success": true,
+  "projectFilePath": "/Users/tabitharowland/Documents/GitHub/hatstravaganza/hatstravaganza.csproj",
+  "expectedPackageFiles": [
+    "/Users/tabitharowland/.nuget/packages/pathoschild.stardew.modbuildconfig/4.4.0/pathoschild.stardew.modbuildconfig.4.4.0.nupkg.sha512",
+    "/Users/tabitharowland/.nuget/packages/microsoft.aspnetcore.app.ref/6.0.36/microsoft.aspnetcore.app.ref.6.0.36.nupkg.sha512",
+    "/Users/tabitharowland/.nuget/packages/microsoft.netcore.app.ref/6.0.36/microsoft.netcore.app.ref.6.0.36.nupkg.sha512"
+  ],
+  "logs": []
+}
