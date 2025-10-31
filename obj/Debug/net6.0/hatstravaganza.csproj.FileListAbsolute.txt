@@ -1,0 +1,9 @@
+/Users/tabitharowland/Documents/GitHub/hatstravaganza/obj/Debug/net6.0/hatstravaganza.csproj.AssemblyReference.cache
+/Users/tabitharowland/Documents/GitHub/hatstravaganza/obj/Debug/net6.0/hatstravaganza.GeneratedMSBuildEditorConfig.editorconfig
+/Users/tabitharowland/Documents/GitHub/hatstravaganza/obj/Debug/net6.0/hatstravaganza.AssemblyInfoInputs.cache
+/Users/tabitharowland/Documents/GitHub/hatstravaganza/obj/Debug/net6.0/hatstravaganza.AssemblyInfo.cs
+/Users/tabitharowland/Documents/GitHub/hatstravaganza/obj/Debug/net6.0/hatstravaganza.csproj.CoreCompileInputs.cache
+/Users/tabitharowland/Documents/GitHub/hatstravaganza/obj/Debug/net6.0/hatstravaganza.sourcelink.json
+/Users/tabitharowland/Documents/GitHub/hatstravaganza/bin/Debug/net6.0/hatstravaganza.deps.json
+/Users/tabitharowland/Documents/GitHub/hatstravaganza/bin/Debug/net6.0/hatstravaganza.dll
+/Users/tabitharowland/Documents/GitHub/hatstravaganza/obj/Debug/net6.0/hatstravaganza.dll

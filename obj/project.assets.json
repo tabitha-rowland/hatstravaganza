@@ -44,7 +44,7 @@
     "version": "1.0.0",
     "restore": {
       "projectUniqueName": "/Users/tabitharowland/Documents/GitHub/hatstravaganza/hatstravaganza.csproj",
-      "projectName": "tutorial",
+      "projectName": "hatstravaganza",
       "projectPath": "/Users/tabitharowland/Documents/GitHub/hatstravaganza/hatstravaganza.csproj",
       "packagesPath": "/Users/tabitharowland/.nuget/packages/",
       "outputPath": "/Users/tabitharowland/Documents/GitHub/hatstravaganza/obj/",
