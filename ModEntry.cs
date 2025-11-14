@@ -13,9 +13,9 @@ namespace Hatstravaganza
     internal sealed class ModEntry : Mod
     {
         private HatRenderer hatRenderer; // Instance of HatRenderer to manage hat drawing
-        private DialogueManager dialogueManager;  
+        private DialogueManager dialogueManager;
 
-        private HatManager hatManager;  
+        private HatManager hatManager;
 
 
         /// <summary>The mod entry point, called after the mod is first loaded.</summary>
@@ -28,7 +28,10 @@ namespace Hatstravaganza
             // Create managers
             hatRenderer = new HatRenderer(helper);
             dialogueManager = new DialogueManager(helper, this.Monitor);
-            hatManager = new HatManager(this.Monitor);  
+            hatManager = new HatManager(helper, this.Monitor);  // Added helper parameter
+
+            // Load custom hat data
+            helper.Events.Content.AssetRequested += this.OnAssetRequested;
 
             // Subscribe to hat gift confirmation
             dialogueManager.OnHatGiftConfirmed += OnHatGiftConfirmed;
@@ -37,23 +40,26 @@ namespace Hatstravaganza
             helper.Events.Input.ButtonPressed += this.OnButtonPressed;
             helper.Events.Display.RenderedWorld += this.OnRenderedWorld;
             helper.Events.GameLoop.SaveLoaded += this.OnSaveLoaded;
+            helper.Events.GameLoop.Saved += this.OnSaved;  // Add this
         }
-
+        private void OnSaved(object sender, SavedEventArgs e)
+        {
+            // Save hat data when game saves
+            hatManager.SaveNPCHats();
+            this.Monitor.Log("Hat data saved with game save", LogLevel.Info);
+        }
         private void OnSaveLoaded(object sender, SaveLoadedEventArgs e)
         {
-            this.Monitor.Log("Save loaded! Giving player pumpkin hat item...", LogLevel.Info);
+            this.Monitor.Log("Save loaded! Loading hat data and giving player pumpkin hat...", LogLevel.Info);
 
-            // Create a Void Egg as placeholder (it's purple/spooky like a pumpkin!)
-            // Item ID "305" = Void Egg
+            // Load existing hat data
+            hatManager.LoadNPCHats();
+
+            // Give player pumpkin hat token
             StardewValley.Object pumpkinHatToken = new StardewValley.Object("305", 1);
-
-            // Override the display name so you know it's the "hat"
-            pumpkinHatToken.displayName = "Pumpkin Hat (temp)";
-
-            // Add to player inventory
             Game1.player.addItemToInventory(pumpkinHatToken);
 
-            this.Monitor.Log("Pumpkin hat token added to inventory!", LogLevel.Info);
+            this.Monitor.Log("Pumpkin hat token (Void Egg) added to inventory!", LogLevel.Info);
         }
 
         /// <summary>Raised after the player presses a button on the keyboard, controller, or mouse.</summary>
@@ -74,15 +80,17 @@ namespace Hatstravaganza
 
                     if (npc != null)
                     {
-                        string itemName = Game1.player.ActiveObject.Name;
+                        StardewValley.Object heldItem = Game1.player.ActiveObject;
 
-                        // Check if item name contains "Hat" (simple check for now)
-                        if (itemName.Contains("Hat"))
+                        this.Monitor.Log($"Player holding: {heldItem.DisplayName} (ID: {heldItem.ItemId})", LogLevel.Debug);
+
+                        // Check if it's our pumpkin hat token (Void Egg ID = 305)
+                        if (heldItem.ItemId == "305")
                         {
-                            this.Monitor.Log($"Player is gifting hat: {itemName} to {npc.Name}", LogLevel.Info);
+                            this.Monitor.Log($"Player is gifting Pumpkin Hat to {npc.Name}", LogLevel.Info);
 
                             // Show confirmation dialogue
-                            dialogueManager.ShowHatGiftConfirmation(npc, itemName);
+                            dialogueManager.ShowHatGiftConfirmation(npc, "Pumpkin Hat");
 
                             // Suppress normal gift behavior
                             Helper.Input.Suppress(e.Button);
@@ -116,13 +124,54 @@ namespace Hatstravaganza
                 return;
 
             // Get all NPCs in current location
+            this.Monitor.Log($"Checking {Game1.currentLocation.characters.Count} NPCs in {Game1.currentLocation.Name}", LogLevel.Debug);
+
             foreach (NPC npc in Game1.currentLocation.characters)
             {
+                this.Monitor.Log($"Checking NPC: {npc.Name}", LogLevel.Debug);
+
                 // Check if this NPC has a hat
                 if (hatManager.NPCHasHat(npc.Name))
                 {
+                    this.Monitor.Log($"{npc.Name} HAS a hat! Drawing it...", LogLevel.Info);
                     hatRenderer.DrawHatOnNPC(npc, e.SpriteBatch);
                 }
+                else
+                {
+                    this.Monitor.Log($"{npc.Name} does NOT have a hat", LogLevel.Debug);
+                }
+            }
+        }
+
+        private void OnAssetRequested(object sender, AssetRequestedEventArgs e)
+        {
+            // Add custom hat data
+            if (e.NameWithoutLocale.IsEquivalentTo("Data/hats"))
+            {
+                e.Edit(asset =>
+                {
+                    var data = asset.AsDictionary<string, string>().Data;
+
+                    // Add pumpkin hat (using ID 9999 to avoid conflicts)
+                    data["9999"] = "Pumpkin Hat/A festive pumpkin hat/true/false/Hatstravaganza/Hatstravaganza.PumpkinHat";
+
+                    this.Monitor.Log("Added Pumpkin Hat to game data", LogLevel.Debug);
+                });
+            }
+
+            // Add custom hat texture
+            if (e.NameWithoutLocale.IsEquivalentTo("Characters/Farmer/hats"))
+            {
+                e.Edit(asset =>
+                {
+                    var editor = asset.AsImage();
+                    var pumpkinHatTexture = Helper.ModContent.Load<Microsoft.Xna.Framework.Graphics.Texture2D>("assets/pumpkin-hat.png");
+
+                    // Patch it into the hat spritesheet at position for hat ID 9999
+                    // This is complex - for now let's use a simpler approach
+
+                    this.Monitor.Log("Would patch hat texture here", LogLevel.Debug);
+                });
             }
         }
 
