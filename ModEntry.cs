@@ -26,7 +26,7 @@ namespace Hatstravaganza
             this.Monitor.Log("Hatstravaganza mod loaded!", LogLevel.Info);
 
             // Create managers
-            hatRenderer = new HatRenderer(helper);
+            hatRenderer = new HatRenderer(helper, this.Monitor);
             dialogueManager = new DialogueManager(helper, this.Monitor);
             hatManager = new HatManager(helper, this.Monitor);  // Added helper parameter
 
