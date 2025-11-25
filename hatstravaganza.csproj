@@ -13,7 +13,7 @@
     <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.4.0" />
   </ItemGroup>
   <ItemGroup>
-  <None Include="hat-offsets.json">
+  <None Include="hat-offsets.JSON">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
   </None>
 </ItemGroup>

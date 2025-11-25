@@ -107,33 +107,31 @@ namespace Hatstravaganza
 
         public void DrawHatOnNPC(NPC npc, SpriteBatch spriteBatch)
         {
-            // Safety check - don't try to draw if texture failed to load
             if (hatTexture == null)
                 return;
 
-            // Get which direction the NPC is facing (0=up, 1=right, 2=down, 3=left)
             int direction = npc.FacingDirection;
-
-            // Calculate which frame of our sprite sheet to use
             Rectangle sourceRect = new Rectangle(direction * 16, 0, 16, 16);
-
-            // Get NPC's position on screen
             Vector2 npcPosition = npc.getLocalPosition(Game1.viewport);
 
-            // Get the custom offset for this NPC and direction
             HatOffset offset = GetOffsetForNPC(npc.Name, direction);
-            Vector2 offsetVector = offset.ToVector2();
 
-            // Scale the offset by the game's zoom level (4x)
-            offsetVector *= 4f;
+            // DEBUG: Log the offset being used
+            monitor.Log($"Drawing hat on {npc.Name}, offset: X={offset.X}, Y={offset.Y}", LogLevel.Debug);
 
-            // Position hat on top of NPC's head using custom offset
+            float hatScale = 3f;
+            float npcSpriteWidth = 64f;
+            float hatWidth = 16f * hatScale;
+            float centerOffset = (npcSpriteWidth - hatWidth) / 2f;
+
             Vector2 hatPosition = new Vector2(
-                npcPosition.X + offsetVector.X,
-                npcPosition.Y + offsetVector.Y
+                npcPosition.X + centerOffset + (offset.X * 4f),
+                npcPosition.Y + (offset.Y * 4f)
             );
 
-            // Draw the hat
+            // DEBUG: Log final position
+            monitor.Log($"Hat position: {hatPosition}, NPC position: {npcPosition}", LogLevel.Debug);
+
             spriteBatch.Draw(
                 hatTexture,
                 hatPosition,
@@ -141,10 +139,11 @@ namespace Hatstravaganza
                 Color.White,
                 0f,
                 Vector2.Zero,
-                4f,  // Scale (Stardew uses 4x zoom)
+                hatScale,
                 SpriteEffects.None,
                 0f
             );
         }
     }
 }
+
