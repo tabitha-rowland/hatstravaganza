@@ -26,7 +26,7 @@ namespace Hatstravaganza
             this.Monitor.Log("Hatstravaganza mod loaded!", LogLevel.Info);
 
             // Create managers
-            hatRenderer = new HatRenderer(helper);
+            hatRenderer = new HatRenderer(helper, this.Monitor);
             dialogueManager = new DialogueManager(helper, this.Monitor);
             hatManager = new HatManager(helper, this.Monitor);  // Added helper parameter
 
@@ -40,7 +40,11 @@ namespace Hatstravaganza
             helper.Events.Input.ButtonPressed += this.OnButtonPressed;
             helper.Events.Display.RenderedWorld += this.OnRenderedWorld;
             helper.Events.GameLoop.SaveLoaded += this.OnSaveLoaded;
-            helper.Events.GameLoop.Saved += this.OnSaved;  // Add this
+            helper.Events.GameLoop.Saved += this.OnSaved;
+
+            helper.ConsoleCommands.Add("hat_remove", "Remove hat from an NPC\n\nUsage: hat_remove <npc_name>", RemoveHatCommand);
+            helper.ConsoleCommands.Add("hat_clear", "Remove all hats from all NPCs", ClearAllHatsCommand);
+        
         }
         private void OnSaved(object sender, SavedEventArgs e)
         {
@@ -174,6 +178,33 @@ namespace Hatstravaganza
                 });
             }
         }
+
+        private void RemoveHatCommand(string command, string[] args)
+{
+    if (args.Length == 0)
+    {
+        this.Monitor.Log("Usage: hat_remove <npc_name>", LogLevel.Info);
+        return;
+    }
+    
+    string npcName = args[0];
+    
+    if (hatManager.NPCHasHat(npcName))
+    {
+        hatManager.RemoveHatFromNPC(npcName);
+        this.Monitor.Log($"Removed hat from {npcName}", LogLevel.Info);
+    }
+    else
+    {
+        this.Monitor.Log($"{npcName} doesn't have a hat", LogLevel.Info);
+    }
+}
+
+private void ClearAllHatsCommand(string command, string[] args)
+{
+    hatManager.ClearAllHats();
+    this.Monitor.Log("Removed all hats from all NPCs", LogLevel.Info);
+}
 
 
     }

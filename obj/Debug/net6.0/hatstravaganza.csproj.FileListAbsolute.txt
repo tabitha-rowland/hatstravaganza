@@ -7,3 +7,4 @@
 /Users/tabitharowland/Documents/GitHub/hatstravaganza/bin/Debug/net6.0/hatstravaganza.deps.json
 /Users/tabitharowland/Documents/GitHub/hatstravaganza/bin/Debug/net6.0/hatstravaganza.dll
 /Users/tabitharowland/Documents/GitHub/hatstravaganza/obj/Debug/net6.0/hatstravaganza.dll
+/Users/tabitharowland/Documents/GitHub/hatstravaganza/bin/Debug/net6.0/hat-offsets.JSON

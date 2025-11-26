@@ -44,8 +44,7 @@ namespace Hatstravaganza
                 npcHats.Add(npcName, hatName);
             }
             
-            // Auto-save after giving a hat
-            SaveNPCHats();
+            
         }
         
         /// <summary>
@@ -75,7 +74,6 @@ namespace Hatstravaganza
             {
                 npcHats.Remove(npcName);
                 monitor.Log($"Removed hat from {npcName}", LogLevel.Debug);
-                SaveNPCHats();
             }
         }
         
