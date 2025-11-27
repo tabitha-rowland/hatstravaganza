@@ -17,6 +17,9 @@ namespace Hatstravaganza
 
         private HatManager hatManager;
 
+        private SpriteAnalyzer spriteAnalyzer;  // Add this
+
+
 
         /// <summary>The mod entry point, called after the mod is first loaded.</summary>
         /// <param name="helper">Provides simplified APIs for writing mods.</param>
@@ -36,6 +39,7 @@ namespace Hatstravaganza
             // Subscribe to hat gift confirmation
             dialogueManager.OnHatGiftConfirmed += OnHatGiftConfirmed;
 
+            spriteAnalyzer = new SpriteAnalyzer(helper, this.Monitor);  // Add this
 
 
             // Register event handlers
@@ -55,6 +59,8 @@ namespace Hatstravaganza
             helper.ConsoleCommands.Add("hat_save", "Save current offsets to JSON file", HatSaveCommand);
             helper.ConsoleCommands.Add("hat_show", "Show current offsets for an NPC\n\nUsage: hat_show <npc_name>", HatShowCommand);
 
+            helper.ConsoleCommands.Add("hat_analyze", "Analyze NPC sprites and generate hat offsets", AnalyzeSpritesCommand);
+
         }
         private void OnSaved(object sender, SavedEventArgs e)
         {
@@ -64,16 +70,24 @@ namespace Hatstravaganza
         }
         private void OnSaveLoaded(object sender, SaveLoadedEventArgs e)
         {
-            this.Monitor.Log("Save loaded! Loading hat data and giving player pumpkin hat...", LogLevel.Info);
+            this.Monitor.Log("Save loaded! Loading hat data and giving player hats...", LogLevel.Info);
 
             // Load existing hat data
             hatManager.LoadNPCHats();
 
-            // Give player pumpkin hat token
+            // Give player pumpkin hat token (Void Egg = 305)
             StardewValley.Object pumpkinHatToken = new StardewValley.Object("305", 1);
             Game1.player.addItemToInventory(pumpkinHatToken);
+            Game1.player.addItemToInventory(pumpkinHatToken);
 
-            this.Monitor.Log("Pumpkin hat token (Void Egg) added to inventory!", LogLevel.Info);
+
+            // Give player santa hat token (Duck Egg = 442)
+            StardewValley.Object santaHatToken = new StardewValley.Object("442", 1);
+            Game1.player.addItemToInventory(santaHatToken);
+            Game1.player.addItemToInventory(santaHatToken);
+
+
+            this.Monitor.Log("Hat tokens added to inventory!", LogLevel.Info);
         }
 
         /// <summary>Raised after the player presses a button on the keyboard, controller, or mouse.</summary>
@@ -81,7 +95,6 @@ namespace Hatstravaganza
         /// <param name="e">The event data.</param>
         private void OnButtonPressed(object sender, ButtonPressedEventArgs e)
         {
-            // Don't process clicks if a menu is already open
             if (Game1.activeClickableMenu != null)
                 return;
 
@@ -96,17 +109,22 @@ namespace Hatstravaganza
                     {
                         StardewValley.Object heldItem = Game1.player.ActiveObject;
 
-                        this.Monitor.Log($"Player holding: {heldItem.DisplayName} (ID: {heldItem.ItemId})", LogLevel.Debug);
+                        string hatName = null;
 
-                        // Check if it's our pumpkin hat token (Void Egg ID = 305)
-                        if (heldItem.ItemId == "305")
+                        // Check which hat token they're holding
+                        if (heldItem.ItemId == "305")  // Void Egg = Pumpkin Hat
                         {
-                            this.Monitor.Log($"Player is gifting Pumpkin Hat to {npc.Name}", LogLevel.Info);
+                            hatName = "Pumpkin Hat";
+                        }
+                        else if (heldItem.ItemId == "442")  // Duck Egg = Santa Hat
+                        {
+                            hatName = "Santa Hat";
+                        }
 
-                            // Show confirmation dialogue
-                            dialogueManager.ShowHatGiftConfirmation(npc, "Pumpkin Hat");
-
-                            // Suppress normal gift behavior
+                        if (hatName != null)
+                        {
+                            this.Monitor.Log($"Player is gifting {hatName} to {npc.Name}", LogLevel.Info);
+                            dialogueManager.ShowHatGiftConfirmation(npc, hatName);
                             Helper.Input.Suppress(e.Button);
                         }
                     }
@@ -133,30 +151,28 @@ namespace Hatstravaganza
         ///once word is rendered, do ...
         private void OnRenderedWorld(object sender, RenderedWorldEventArgs e)
         {
-            // Only draw if world is ready
             if (!Context.IsWorldReady)
                 return;
 
-            // Check if we're in a cutscene/event
             if (Game1.CurrentEvent != null)
             {
-                // During events, only draw on event actors
                 foreach (NPC npc in Game1.CurrentEvent.actors)
                 {
                     if (hatManager.NPCHasHat(npc.Name))
                     {
-                        hatRenderer.DrawHatOnNPC(npc, e.SpriteBatch);
+                        string hatName = hatManager.GetNPCHat(npc.Name);  // Get which hat they're wearing
+                        hatRenderer.DrawHatOnNPC(npc, hatName, e.SpriteBatch);  // Pass hat name
                     }
                 }
             }
             else
             {
-                // Normal gameplay - draw on location characters
                 foreach (NPC npc in Game1.currentLocation.characters)
                 {
                     if (hatManager.NPCHasHat(npc.Name))
                     {
-                        hatRenderer.DrawHatOnNPC(npc, e.SpriteBatch);
+                        string hatName = hatManager.GetNPCHat(npc.Name);  // Get which hat they're wearing
+                        hatRenderer.DrawHatOnNPC(npc, hatName, e.SpriteBatch);  // Pass hat name
                     }
                 }
             }
@@ -309,5 +325,30 @@ namespace Hatstravaganza
             this.Monitor.Log($"Gave hats to {count} NPCs!", LogLevel.Info);
         }
 
+
+        private void AnalyzeSpritesCommand(string command, string[] args)
+        {
+            this.Monitor.Log("Analyzing NPC sprites...", LogLevel.Info);
+
+            try
+            {
+                // Run the analysis
+                var offsets = spriteAnalyzer.AnalyzeAllNPCs();
+
+                this.Monitor.Log($"Successfully analyzed {offsets.Count} NPCs", LogLevel.Info);
+
+                // Save to a new file
+                string json = Newtonsoft.Json.JsonConvert.SerializeObject(offsets, Newtonsoft.Json.Formatting.Indented);
+                string filePath = System.IO.Path.Combine(Helper.DirectoryPath, "hat-offsets-generated.json");
+                System.IO.File.WriteAllText(filePath, json);
+
+                this.Monitor.Log($"Saved generated offsets to: hat-offsets-generated.json", LogLevel.Info);
+                this.Monitor.Log("Review the file and copy to hat-offsets.json if it looks good!", LogLevel.Info);
+            }
+            catch (Exception ex)
+            {
+                this.Monitor.Log($"Error during analysis: {ex.Message}", LogLevel.Error);
+            }
+        }
     }
 }

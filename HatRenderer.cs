@@ -21,6 +21,9 @@ namespace Hatstravaganza
         // Default offsets for NPCs not in the file
         private NPCHatOffsets defaultOffsets;
 
+        // Dictionary to cache hat textures
+        private Dictionary<string, Texture2D> hatTextures;
+
         // Path to offsets file
         private string offsetsFilePath;
 
@@ -29,32 +32,56 @@ namespace Hatstravaganza
             this.helper = helper;
             this.monitor = monitor;
 
+
+
+
             // Initialize defaults
             defaultOffsets = new NPCHatOffsets();
             npcOffsets = new Dictionary<string, NPCHatOffsets>();
+            hatTextures = new Dictionary<string, Texture2D>();  // Initialize hat dictionary
+
 
             offsetsFilePath = Path.Combine(helper.DirectoryPath, "hat-offsets.json");
 
-            LoadHatSprite();
+            LoadHatSprites();
             LoadHatOffsets();
         }
 
-        private void LoadHatSprite()
+        private void LoadHatSprites()
         {
             try
             {
-                hatTexture = helper.ModContent.Load<Texture2D>("assets/pumpkin-hat.png");
+                monitor.Log("Loading hat textures...", LogLevel.Info);
 
-                if (hatTexture == null)
+                // Load pumpkin hat
+                Texture2D pumpkinHat = helper.ModContent.Load<Texture2D>("assets/pumpkin-hat.png");
+                if (pumpkinHat != null)
                 {
-                    throw new System.Exception("Hat texture loaded but is null");
+                    hatTextures["Pumpkin Hat"] = pumpkinHat;
+                    monitor.Log("✓ Loaded Pumpkin Hat texture", LogLevel.Info);
+                }
+                else
+                {
+                    monitor.Log("✗ Pumpkin Hat texture is null!", LogLevel.Error);
                 }
 
-                monitor.Log("Hat texture loaded successfully", LogLevel.Debug);
+                // Load santa hat
+                Texture2D santaHat = helper.ModContent.Load<Texture2D>("assets/santa-hat.png");
+                if (santaHat != null)
+                {
+                    hatTextures["Santa Hat"] = santaHat;
+                    monitor.Log("✓ Loaded Santa Hat texture", LogLevel.Info);
+                }
+                else
+                {
+                    monitor.Log("✗ Santa Hat texture is null!", LogLevel.Error);
+                }
+
+                monitor.Log($"Total loaded: {hatTextures.Count} hat textures", LogLevel.Info);
             }
             catch (System.Exception ex)
             {
-                monitor.Log($"Failed to load hat texture: {ex.Message}", LogLevel.Error);
+                monitor.Log($"Failed to load hat textures: {ex.Message}", LogLevel.Error);
             }
         }
 
@@ -211,8 +238,18 @@ namespace Hatstravaganza
             monitor.Log($"  Right: X={offsets.Right.X}, Y={offsets.Right.Y}", LogLevel.Info);
         }
 
-        public void DrawHatOnNPC(NPC npc, SpriteBatch spriteBatch)
+        public void DrawHatOnNPC(NPC npc, string hatName, SpriteBatch spriteBatch)
         {
+
+            // Get the correct texture for this hat
+            if (!hatTextures.ContainsKey(hatName))
+            {
+                monitor.Log($"No texture found for hat: {hatName}", LogLevel.Warn);
+                return;
+            }
+
+            Texture2D hatTexture = hatTextures[hatName];
+
             if (hatTexture == null)
                 return;
 
@@ -221,13 +258,12 @@ namespace Hatstravaganza
             Vector2 npcPosition = npc.getLocalPosition(Game1.viewport);
 
             // Add animation offsets
-            npcPosition.Y += npc.yJumpOffset;  // Jumping
+            npcPosition.Y += npc.yJumpOffset;
 
             // Add walking bob animation
-            // NPCs bob when sprite.currentFrame is odd (1, 3, 5...)
             if (npc.Sprite != null && npc.Sprite.currentFrame % 2 == 1)
             {
-                npcPosition.Y -= 4; // Move up slightly during walk cycle
+                npcPosition.Y -= 4;
             }
 
             HatOffset offset = GetOffsetForNPC(npc.Name, direction);
@@ -254,7 +290,5 @@ namespace Hatstravaganza
                 0f
             );
         }
-
-
     }
 }
