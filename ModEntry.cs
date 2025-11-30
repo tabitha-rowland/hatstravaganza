@@ -6,6 +6,8 @@ using StardewModdingAPI.Utilities;
 using StardewValley;
 using StardewValley.Objects;
 using StardewValley.Characters;
+using System.Collections;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace Hatstravaganza
 {
@@ -19,11 +21,11 @@ namespace Hatstravaganza
 
         private SpriteAnalyzer spriteAnalyzer;  // Add this
 
-
+        private Texture2D icon;
 
         /// <summary>The mod entry point, called after the mod is first loaded.</summary>
         /// <param name="helper">Provides simplified APIs for writing mods.</param>
-
+        ///         
         public override void Entry(IModHelper helper)
         {
             this.Monitor.Log("Hatstravaganza mod loaded!", LogLevel.Info);
@@ -31,24 +33,23 @@ namespace Hatstravaganza
             // Create managers
             hatRenderer = new HatRenderer(helper, this.Monitor);
             dialogueManager = new DialogueManager(helper, this.Monitor);
-            hatManager = new HatManager(helper, this.Monitor);  // Added helper parameter
+            hatManager = new HatManager(helper, this.Monitor);
+            spriteAnalyzer = new SpriteAnalyzer(helper, this.Monitor);
 
-            // Load custom hat data
-            helper.Events.Content.AssetRequested += this.OnAssetRequested;
-
-            // Subscribe to hat gift confirmation
+            // Subscribe to events
             dialogueManager.OnHatGiftConfirmed += OnHatGiftConfirmed;
-
-            spriteAnalyzer = new SpriteAnalyzer(helper, this.Monitor);  // Add this
-
-
-            // Register event handlers
             helper.Events.Input.ButtonPressed += this.OnButtonPressed;
             helper.Events.Display.RenderedWorld += this.OnRenderedWorld;
             helper.Events.GameLoop.SaveLoaded += this.OnSaveLoaded;
             helper.Events.GameLoop.Saved += this.OnSaved;
+            helper.Events.Content.AssetRequested += this.OnAssetRequested;
 
-            // Give everyone hats
+            // NEW: Detect when menus close to refill Hat Box
+            helper.Events.Display.MenuChanged += this.OnMenuChanged;
+
+
+
+            // ... console commands
             helper.ConsoleCommands.Add("hat_all", "Give all NPCs a hat", GiveAllNPCsHatsCommand);
 
             // Adjust hats
@@ -68,27 +69,106 @@ namespace Hatstravaganza
             hatManager.SaveNPCHats();
             this.Monitor.Log("Hat data saved with game save", LogLevel.Info);
         }
+
+        private void OnMenuChanged(object sender, MenuChangedEventArgs e)
+        {
+            // Check if a chest menu just closed
+            if (e.OldMenu is StardewValley.Menus.ItemGrabMenu itemGrabMenu && e.NewMenu == null)
+            {
+                // Check if it was a Hat Box
+                if (itemGrabMenu.context is Chest chest && chest.Name == "Hat Box")
+                {
+                    this.Monitor.Log("Hat Box closed, refilling...", LogLevel.Debug);
+                    FillHatBox(chest);
+                }
+            }
+        }
         private void OnSaveLoaded(object sender, SaveLoadedEventArgs e)
         {
-            this.Monitor.Log("Save loaded! Loading hat data and giving player hats...", LogLevel.Info);
+            this.Monitor.Log("Save loaded! Loading hat data...", LogLevel.Info);
 
             // Load existing hat data
             hatManager.LoadNPCHats();
 
-            // Give player pumpkin hat token (Void Egg = 305)
-            StardewValley.Object pumpkinHatToken = new StardewValley.Object("305", 1);
-            Game1.player.addItemToInventory(pumpkinHatToken);
-            Game1.player.addItemToInventory(pumpkinHatToken);
+            // Check if player already received Hat Box
+            bool hasReceivedBefore = Game1.player.mailReceived.Contains("Hatstravaganza.HatBox");
+            this.Monitor.Log($"Player mailReceived check: {hasReceivedBefore}", LogLevel.Info);
 
-
-            // Give player santa hat token (Duck Egg = 442)
-            StardewValley.Object santaHatToken = new StardewValley.Object("442", 1);
-            Game1.player.addItemToInventory(santaHatToken);
-            Game1.player.addItemToInventory(santaHatToken);
-
-
-            this.Monitor.Log("Hat tokens added to inventory!", LogLevel.Info);
+            if (!hasReceivedBefore)
+            {
+                this.Monitor.Log("Attempting to give Hat Box...", LogLevel.Info);
+                GivePlayerHatBox();
+                Game1.player.mailReceived.Add("Hatstravaganza.HatBox");
+                this.Monitor.Log("Hat Box given and mail flag added!", LogLevel.Info);
+            }
+            else
+            {
+                this.Monitor.Log("Player already has Hat Box", LogLevel.Info);
+            }
         }
+
+        private void GivePlayerHatBox()
+        {
+            this.Monitor.Log("Creating Hat Box chest...", LogLevel.Debug);
+
+            Chest hatBox = new Chest(true);
+            hatBox.Name = "Hat Box";
+
+            // Get all hat item IDs from renderer
+            var hatItemIds = hatRenderer.GetAllHatItemIds();
+
+            this.Monitor.Log($"Adding {hatItemIds.Count} hat types to box", LogLevel.Debug);
+
+            // Fill with hats
+            foreach (var itemId in hatItemIds)
+            {
+                // Use the actual item IDs (9000, 9001, etc)
+                StardewValley.Object hatItem = new StardewValley.Object(itemId, 36);
+                hatBox.Items.Add(hatItem);
+            }
+
+            Game1.player.addItemToInventory(hatBox);
+            Game1.addHUDMessage(new HUDMessage("Received: Hat Box", 2));
+
+            this.Monitor.Log("Hat Box given!", LogLevel.Info);
+            FillHatBox(hatBox);
+            this.Monitor.Log("Hat Box filled!", LogLevel.Info);
+
+        }
+
+        private void FillHatBox(Chest chest)
+        {
+            // Get all registered hats from the renderer
+            var hatItemIds = hatRenderer.GetAllHatItemIds();
+
+            foreach (var itemId in hatItemIds)
+            {
+                // Count how many of this hat are currently in the chest
+                int currentCount = 0;
+
+                foreach (var item in chest.Items)
+                {
+                    if (item != null && item is StardewValley.Object obj && obj.ItemId == itemId)
+                    {
+                        currentCount += obj.Stack;
+                    }
+                }
+
+                // Calculate how many to add to reach 36
+                int hatsToAdd = 36 - currentCount;
+
+                if (hatsToAdd > 0)
+                {
+                    this.Monitor.Log($"  Adding {hatsToAdd} of item {itemId} (had {currentCount})", LogLevel.Debug);
+                    StardewValley.Object hatItem = new StardewValley.Object(itemId, hatsToAdd);
+                    chest.addItem(hatItem);
+                }
+                this.Monitor.Log($"Filled Hat Box with {hatItemIds.Count} hat types", LogLevel.Debug);
+            }
+        }
+
+
+
 
         /// <summary>Raised after the player presses a button on the keyboard, controller, or mouse.</summary>
         /// <param name="sender">The event sender.</param>
@@ -109,17 +189,8 @@ namespace Hatstravaganza
                     {
                         StardewValley.Object heldItem = Game1.player.ActiveObject;
 
-                        string hatName = null;
-
-                        // Check which hat token they're holding
-                        if (heldItem.ItemId == "305")  // Void Egg = Pumpkin Hat
-                        {
-                            hatName = "Pumpkin Hat";
-                        }
-                        else if (heldItem.ItemId == "442")  // Duck Egg = Santa Hat
-                        {
-                            hatName = "Santa Hat";
-                        }
+                        // Check if this item ID is registered as a hat
+                        string hatName = hatRenderer.GetHatNameFromItemId(heldItem.ItemId);
 
                         if (hatName != null)
                         {
@@ -180,32 +251,36 @@ namespace Hatstravaganza
 
         private void OnAssetRequested(object sender, AssetRequestedEventArgs e)
         {
-            // Add custom hat data
-            if (e.NameWithoutLocale.IsEquivalentTo("Data/hats"))
-            {
-                e.Edit(asset =>
-                {
-                    var data = asset.AsDictionary<string, string>().Data;
-
-                    // Add pumpkin hat (using ID 9999 to avoid conflicts)
-                    data["9999"] = "Pumpkin Hat/A festive pumpkin hat/true/false/Hatstravaganza/Hatstravaganza.PumpkinHat";
-
-                    this.Monitor.Log("Added Pumpkin Hat to game data", LogLevel.Debug);
-                });
-            }
-
-            // Add custom hat texture
-            if (e.NameWithoutLocale.IsEquivalentTo("Characters/Farmer/hats"))
+            // Patch item spritesheet to add custom hat icons
+            if (e.NameWithoutLocale.IsEquivalentTo("Maps/springobjects"))
             {
                 e.Edit(asset =>
                 {
                     var editor = asset.AsImage();
-                    var pumpkinHatTexture = Helper.ModContent.Load<Microsoft.Xna.Framework.Graphics.Texture2D>("assets/pumpkin-hat.png");
 
-                    // Patch it into the hat spritesheet at position for hat ID 9999
-                    // This is complex - for now let's use a simpler approach
+                    // Get all hat item IDs
+                    var hatItemIds = hatRenderer.GetAllHatItemIds();
 
-                    this.Monitor.Log("Would patch hat texture here", LogLevel.Debug);
+                    foreach (var itemId in hatItemIds)
+                    {
+                        // Parse the item ID to get position in spritesheet
+                        if (int.TryParse(itemId, out int id))
+                        {
+                            // Calculate position in 24-wide spritesheet
+                            int x = (id % 24) * 16;
+                            int y = (id / 24) * 16;
+
+                            // Get the icon from renderer
+                            icon = hatRenderer.GetItemIcon(itemId);
+
+                            if (icon != null)
+                            {
+                                // Patch into spritesheet
+                                editor.PatchImage(icon, null, new Rectangle(x, y, 16, 16));
+                                this.Monitor.Log($"Patched icon for item {itemId} at ({x}, {y})", LogLevel.Debug);
+                            }
+                        }
+                    }
                 });
             }
         }

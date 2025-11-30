@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using StardewModdingAPI;
 using StardewValley;
 
+
 namespace Hatstravaganza
 {
     public class HatRenderer
@@ -18,11 +19,17 @@ namespace Hatstravaganza
         // Dictionary to store offsets per NPC
         private Dictionary<string, NPCHatOffsets> npcOffsets;
 
+        // Dictionary to map item IDs to hat names
+        private Dictionary<string, string> itemIdToHatName;
+
         // Default offsets for NPCs not in the file
         private NPCHatOffsets defaultOffsets;
 
         // Dictionary to cache hat textures
         private Dictionary<string, Texture2D> hatTextures;
+
+        // Dictionary to cache item icon textures
+        private Dictionary<string, Texture2D> itemIcons;
 
         // Path to offsets file
         private string offsetsFilePath;
@@ -39,52 +46,209 @@ namespace Hatstravaganza
             defaultOffsets = new NPCHatOffsets();
             npcOffsets = new Dictionary<string, NPCHatOffsets>();
             hatTextures = new Dictionary<string, Texture2D>();  // Initialize hat dictionary
-
+            itemIdToHatName = new Dictionary<string, string>();
+            itemIcons = new Dictionary<string, Texture2D>();
 
             offsetsFilePath = Path.Combine(helper.DirectoryPath, "hat-offsets.json");
 
-            LoadHatSprites();
+            // LoadHatRegistry();   // Load first
+            LoadHatSprites();    // Then load textures
             LoadHatOffsets();
         }
 
+        /// <summary>
+        /// Get hat name from item ID
+        /// </summary>
+        public string GetHatNameFromItemId(string itemId)
+        {
+            if (itemIdToHatName.ContainsKey(itemId))
+            {
+                return itemIdToHatName[itemId];
+            }
+            return null;
+        }
+
+        private void LoadHatRegistry()
+        {
+            try
+            {
+                string registryPath = Path.Combine(helper.DirectoryPath, "hat-registry.json");
+
+                if (!File.Exists(registryPath))
+                {
+                    monitor.Log("hat-registry.json not found, creating default...", LogLevel.Warn);
+
+                    // Create default registry
+                    var defaultRegistry = new Dictionary<string, string>
+            {
+                { "pumpkin-hat", "305" },
+                { "santa-hat", "442" }
+            };
+
+                    string json = Newtonsoft.Json.JsonConvert.SerializeObject(defaultRegistry, Newtonsoft.Json.Formatting.Indented);
+                    File.WriteAllText(registryPath, json);
+                }
+
+                // Load registry
+                string registryJson = File.ReadAllText(registryPath);
+                var fileNameToItemId = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(registryJson);
+
+                // Reverse the mapping: itemId -> hatName
+                itemIdToHatName = new Dictionary<string, string>();
+
+                foreach (var entry in fileNameToItemId)
+                {
+                    string fileName = entry.Key;
+                    string itemId = entry.Value;
+                    string hatName = FormatHatName(fileName);
+
+                    itemIdToHatName[itemId] = hatName;
+                    monitor.Log($"  Registered: Item {itemId} -> {hatName}", LogLevel.Debug);
+                }
+
+                monitor.Log($"Loaded {itemIdToHatName.Count} hat registrations", LogLevel.Info);
+            }
+            catch (Exception ex)
+            {
+                monitor.Log($"Failed to load hat registry: {ex.Message}", LogLevel.Error);
+                itemIdToHatName = new Dictionary<string, string>();
+            }
+        }
         private void LoadHatSprites()
         {
             try
             {
-                monitor.Log("Loading hat textures...", LogLevel.Info);
+                monitor.Log("Auto-discovering hat sprites in assets folder...", LogLevel.Info);
 
-                // Load pumpkin hat
-                Texture2D pumpkinHat = helper.ModContent.Load<Texture2D>("assets/pumpkin-hat.png");
-                if (pumpkinHat != null)
+                string assetsPath = Path.Combine(helper.DirectoryPath, "assets");
+
+                if (!Directory.Exists(assetsPath))
                 {
-                    hatTextures["Pumpkin Hat"] = pumpkinHat;
-                    monitor.Log("✓ Loaded Pumpkin Hat texture", LogLevel.Info);
-                }
-                else
-                {
-                    monitor.Log("✗ Pumpkin Hat texture is null!", LogLevel.Error);
+                    Directory.CreateDirectory(assetsPath);
+                    return;
                 }
 
-                // Load santa hat
-                Texture2D santaHat = helper.ModContent.Load<Texture2D>("assets/santa-hat.png");
-                if (santaHat != null)
+                string[] pngFiles = Directory.GetFiles(assetsPath, "*.png");
+                string[] pngItemFiles = Directory.GetFiles(assetsPath, "*-item.png");
+
+                foreach (string png in pngFiles)
                 {
-                    hatTextures["Santa Hat"] = santaHat;
-                    monitor.Log("✓ Loaded Santa Hat texture", LogLevel.Info);
-                }
-                else
-                {
-                    monitor.Log("✗ Santa Hat texture is null!", LogLevel.Error);
+                    foreach (string itemPng in pngItemFiles)
+                    {
+                        if (Path.GetFileNameWithoutExtension(png) + "-item" == Path.GetFileNameWithoutExtension(itemPng))
+                        {
+                            monitor.Log($"Removing item texture {Path.GetFileName(itemPng)} from hat list", LogLevel.Info);
+                            List<string> tempList = new List<string>(pngFiles);
+                            tempList.Remove(itemPng);
+                            pngFiles = tempList.ToArray();
+                        }
+                    }
                 }
 
-                monitor.Log($"Total loaded: {hatTextures.Count} hat textures", LogLevel.Info);
+                monitor.Log($"Found {pngFiles.Length} PNG files", LogLevel.Info);
+
+
+                itemIdToHatName.Clear();
+                int nextId = 936;
+
+                foreach (string filePath in pngFiles)
+                {
+                    try
+                    {
+                        string fileName = Path.GetFileNameWithoutExtension(filePath);
+                        string hatName = FormatHatName(fileName);
+
+                        string relativePath = $"assets/{Path.GetFileName(filePath)}";
+                        Texture2D texture = helper.ModContent.Load<Texture2D>(relativePath);
+
+                        if (texture != null)
+                        {
+                            hatTextures[hatName] = texture;
+
+                            string itemId = nextId.ToString();
+                            itemIdToHatName[itemId] = hatName;
+
+                            // Extract item icon
+                            Texture2D icon = ExtractItemIcon(texture);
+                            if (icon != null)
+                            {
+                                itemIcons[itemId] = icon;
+                            }
+
+                            monitor.Log($"  ✓ {hatName} → Item ID {itemId}", LogLevel.Info);
+                            nextId++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        monitor.Log($"  ✗ Failed: {Path.GetFileName(filePath)} - {ex.Message}", LogLevel.Warn);
+                    }
+                }
+
+                monitor.Log($"Loaded {hatTextures.Count} hats with icons", LogLevel.Info);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                monitor.Log($"Failed to load hat textures: {ex.Message}", LogLevel.Error);
+                monitor.Log($"Error loading hats: {ex.Message}", LogLevel.Error);
             }
         }
 
+        /// <summary>
+        /// Get item icon texture for a hat
+        /// </summary>
+        public Texture2D GetItemIcon(string itemId)
+        {
+            if (itemIcons.ContainsKey(itemId))
+            {
+                return itemIcons[itemId];
+            }
+            return null;
+        }
+
+
+        private Texture2D ExtractItemIcon(Texture2D hatSprite)
+        {
+            try
+            {
+                // Extract first 16x16 frame (down-facing)
+                Color[] pixels = new Color[16 * 16];
+                hatSprite.GetData(0, new Rectangle(0, 0, 16, 16), pixels, 0, pixels.Length);
+
+                // Create new 16x16 texture
+                Texture2D icon = new Texture2D(Game1.graphics.GraphicsDevice, 16, 16);
+                icon.SetData(pixels);
+
+                return icon;
+            }
+            catch (Exception ex)
+            {
+                monitor.Log($"Failed to extract icon: {ex.Message}", LogLevel.Error);
+                return null;
+            }
+        }
+
+
+        /// <summary>
+        /// Convert filename to display name
+        /// Examples: "pumpkin-hat" -> "Pumpkin Hat", "santa_hat" -> "Santa Hat"
+        /// </summary>
+        private string FormatHatName(string fileName)
+        {
+            // Replace hyphens and underscores with spaces
+            string formatted = fileName.Replace("-", " ").Replace("_", " ");
+
+            // Capitalize each word
+            var words = formatted.Split(' ');
+            for (int i = 0; i < words.Length; i++)
+            {
+                if (words[i].Length > 0)
+                {
+                    words[i] = char.ToUpper(words[i][0]) + words[i].Substring(1).ToLower();
+                }
+            }
+
+            return string.Join(" ", words);
+        }
         private void LoadHatOffsets()
         {
             try
@@ -263,7 +427,7 @@ namespace Hatstravaganza
             // Add walking bob animation
             if (npc.Sprite != null && npc.Sprite.currentFrame % 2 == 1)
             {
-                npcPosition.Y -= 4;
+                npcPosition.Y -= -4;
             }
 
             HatOffset offset = GetOffsetForNPC(npc.Name, direction);
@@ -289,6 +453,13 @@ namespace Hatstravaganza
                 SpriteEffects.None,
                 0f
             );
+        }
+        /// <summary>
+        /// Get all registered hat item IDs
+        /// </summary>
+        public List<string> GetAllHatItemIds()
+        {
+            return new List<string>(itemIdToHatName.Keys);
         }
     }
 }
