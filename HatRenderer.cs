@@ -40,7 +40,7 @@ namespace Hatstravaganza
             this.monitor = monitor;
 
 
-
+            monitor.Log("Initializing HatRenderer...", LogLevel.Info);
 
             // Initialize defaults
             defaultOffsets = new NPCHatOffsets();
@@ -149,7 +149,7 @@ namespace Hatstravaganza
 
 
                 itemIdToHatName.Clear();
-                int nextId = 936;
+                int nextId = 800;
 
                 foreach (string filePath in pngFiles)
                 {
