@@ -39,3 +39,7 @@ You can only have custom hat options equal to the amount of slots in a chest (36
 mayor lewis kneels and his hat floats. 
 
 sometimes the npcs think its a gift and it uses their gift limit. they also HATE it.
+
+hat box items dont sort properly into stacks of the same type
+
+still reusing old IDs
