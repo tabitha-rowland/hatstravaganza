@@ -8,6 +8,9 @@ using StardewValley.Objects;
 using StardewValley.Characters;
 using System.Collections;
 using Microsoft.Xna.Framework.Graphics;
+using System.Reflection;
+using System.Linq;
+
 
 namespace Hatstravaganza
 {
@@ -17,6 +20,7 @@ namespace Hatstravaganza
         private HatRenderer hatRenderer; // Instance of HatRenderer to manage hat drawing
         private DialogueManager dialogueManager;
 
+        private bool waitingForHatMail;
         private HatManager hatManager;
 
         private SpriteAnalyzer spriteAnalyzer;  // Add this
@@ -44,9 +48,13 @@ namespace Hatstravaganza
             helper.Events.GameLoop.Saved += this.OnSaved;
             helper.Events.Content.AssetRequested += this.OnAssetRequested;
 
-            // NEW: Detect when menus close to refill Hat Box
-            helper.Events.Display.MenuChanged += this.OnMenuChanged;
 
+            helper.Events.Display.MenuChanged += this.OnMenuChanged;
+            helper.Events.GameLoop.DayStarted += this.OnDayStarted;
+
+            helper.Events.World.ObjectListChanged += OnObjectListChanged;
+
+            //debug stuff
 
 
             // ... console commands
@@ -63,6 +71,8 @@ namespace Hatstravaganza
             helper.ConsoleCommands.Add("hat_analyze", "Analyze NPC sprites and generate hat offsets", AnalyzeSpritesCommand);
 
         }
+
+
         private void OnSaved(object sender, SavedEventArgs e)
         {
             // Save hat data when game saves
@@ -72,16 +82,15 @@ namespace Hatstravaganza
 
         private void OnMenuChanged(object sender, MenuChangedEventArgs e)
         {
-            // Check if a chest menu just closed
+            // Check if a chest menu just closed (for refilling)
             if (e.OldMenu is StardewValley.Menus.ItemGrabMenu itemGrabMenu && e.NewMenu == null)
             {
-                // Check if it was a Hat Box
                 if (itemGrabMenu.context is Chest chest && chest.Name == "Hat Box")
                 {
                     this.Monitor.Log("Hat Box closed, refilling...", LogLevel.Debug);
-                    FillHatBox(chest);
                 }
             }
+
         }
         private void OnSaveLoaded(object sender, SaveLoadedEventArgs e)
         {
@@ -91,19 +100,16 @@ namespace Hatstravaganza
             hatManager.LoadNPCHats();
 
             // Check if player already received Hat Box
-            bool hasReceivedBefore = Game1.player.mailReceived.Contains("Hatstravaganza.HatBox");
-            this.Monitor.Log($"Player mailReceived check: {hasReceivedBefore}", LogLevel.Info);
-
-            if (!hasReceivedBefore)
+            if (!Game1.player.mailReceived.Contains("Hatstravaganza.HatBoxReceived"))
             {
-                this.Monitor.Log("Attempting to give Hat Box...", LogLevel.Info);
-                GivePlayerHatBox();
-                Game1.player.mailReceived.Add("Hatstravaganza.HatBox");
-                this.Monitor.Log("Hat Box given and mail flag added!", LogLevel.Info);
+                // Add to mailbox
+                Game1.player.mailbox.Add("Hatstravaganza.HatBoxMail");
+                waitingForHatMail = true;
+                this.Monitor.Log("Hat Box mail added to mailbox!", LogLevel.Info);
             }
             else
             {
-                this.Monitor.Log("Player already has Hat Box", LogLevel.Info);
+                this.Monitor.Log("Player already has Hat Box", LogLevel.Debug);
             }
         }
 
@@ -111,59 +117,78 @@ namespace Hatstravaganza
         {
             this.Monitor.Log("Creating Hat Box chest...", LogLevel.Debug);
 
-            Chest hatBox = new Chest(true);
+            Chest hatBox = new Chest(true); // Player chest
             hatBox.Name = "Hat Box";
+            hatBox.displayName = "Hat Box"; // Also set display name
+            hatBox.playerChest.Value = true;
+            hatBox.fridge.Value = false;
+            hatBox.Type = "interactive";
+            hatBox.specialChestType.Value = Chest.SpecialChestTypes.None;
 
-            // Get all hat item IDs from renderer
-            var hatItemIds = hatRenderer.GetAllHatItemIds();
 
-            this.Monitor.Log($"Adding {hatItemIds.Count} hat types to box", LogLevel.Debug);
 
-            // Fill with hats
-            foreach (var itemId in hatItemIds)
+            // Try adding as Item instead of Object
+            bool added = Game1.player.addItemToInventoryBool(hatBox);
+
+            if (added)
             {
-                // Use the actual item IDs (9000, 9001, etc)
-                StardewValley.Object hatItem = new StardewValley.Object(itemId, 36);
-                hatBox.Items.Add(hatItem);
+                Game1.addHUDMessage(new HUDMessage("Received: Hat Box", 2));
+                this.Monitor.Log("Hat Box added to inventory!", LogLevel.Info);
             }
-
-            Game1.player.addItemToInventory(hatBox);
-            Game1.addHUDMessage(new HUDMessage("Received: Hat Box", 2));
-
-            this.Monitor.Log("Hat Box given!", LogLevel.Info);
-            FillHatBox(hatBox);
-            this.Monitor.Log("Hat Box filled!", LogLevel.Info);
-
+            else
+            {
+                this.Monitor.Log("Failed to add Hat Box to inventory - inventory full?", LogLevel.Warn);
+                // Drop it at player's feet instead
+                Game1.createItemDebris(hatBox, Game1.player.Position, -1);
+            }
         }
-
         private void FillHatBox(Chest chest)
         {
-            // Get all registered hats from the renderer
             var hatItemIds = hatRenderer.GetAllHatItemIds();
 
             foreach (var itemId in hatItemIds)
             {
-                // Count how many of this hat are currently in the chest
                 int currentCount = 0;
 
+                // IMPORTANT: use chest.items — not chest.Items
                 foreach (var item in chest.Items)
                 {
-                    if (item != null && item is StardewValley.Object obj && obj.ItemId == itemId)
-                    {
+                    if (item is StardewValley.Object obj && obj.ItemId == itemId)
                         currentCount += obj.Stack;
-                    }
                 }
 
-                // Calculate how many to add to reach 36
                 int hatsToAdd = 36 - currentCount;
-
                 if (hatsToAdd > 0)
                 {
-                    this.Monitor.Log($"  Adding {hatsToAdd} of item {itemId} (had {currentCount})", LogLevel.Debug);
+                    Monitor.Log($"Adding {hatsToAdd} of {itemId}", LogLevel.Debug);
                     StardewValley.Object hatItem = new StardewValley.Object(itemId, hatsToAdd);
-                    chest.addItem(hatItem);
+
+                    chest.Items.Add(hatItem);   // <-- IMPORTANT FIX
                 }
-                this.Monitor.Log($"Filled Hat Box with {hatItemIds.Count} hat types", LogLevel.Debug);
+            }
+
+            Monitor.Log($"Filled Hat Box with {hatItemIds.Count} hat types", LogLevel.Debug);
+        }
+
+        private void OnObjectListChanged(object sender, StardewModdingAPI.Events.ObjectListChangedEventArgs e)
+        {
+            // Only react in player's current location
+            if (!Context.IsWorldReady || e.Location != Game1.player.currentLocation)
+                return;
+
+            foreach (var added in e.Added)
+            {
+                if (added.Value is Chest chest)
+                {
+                    // Detect your Hat Box by name
+                    if (chest.Name == "Hat Box")
+                    {
+                        Monitor.Log("Detected newly placed Hat Box — filling now.", LogLevel.Debug);
+
+                        // Fill the chest AFTER it is placed, not before
+                        FillHatBox(chest);
+                    }
+                }
             }
         }
 
@@ -249,11 +274,33 @@ namespace Hatstravaganza
             }
         }
 
+
         private void OnAssetRequested(object sender, AssetRequestedEventArgs e)
         {
+            // Register Hat Box mail
+            if (e.NameWithoutLocale.IsEquivalentTo("Data/mail"))
+            {
+                e.Edit(asset =>
+                {
+                    var data = asset.AsDictionary<string, string>().Data;
+
+                    if (!data.ContainsKey("Hatstravaganza.HatBoxMail"))
+                    {
+                        data["Hatstravaganza.HatBoxMail"] =
+                            "Dear @,^" +
+                            "Thanks for downloading Hatstravaganza! " +
+                            "A Hat Box that'll never run out of hats has been added to your inventory. " +
+                            "Remember that you can always add your own custom hat art- checkout the readme! ^" +
+                            "   -Tab^";
+
+                        this.Monitor.Log("Registered Hat Box mail", LogLevel.Debug);
+                    }
+                });
+            }
             // Patch item spritesheet to add custom hat icons
             if (e.NameWithoutLocale.IsEquivalentTo("Maps/springobjects"))
             {
+
                 e.Edit(asset =>
                 {
                     var editor = asset.AsImage();
@@ -285,6 +332,8 @@ namespace Hatstravaganza
             }
         }
 
+
+
         private void RemoveHatCommand(string command, string[] args)
         {
             if (args.Length == 0)
@@ -313,11 +362,7 @@ namespace Hatstravaganza
         }
 
 
-
-
-
         // live tune hat placements
-
 
         private void HatAdjustCommand(string command, string[] args)
         {
@@ -425,5 +470,24 @@ namespace Hatstravaganza
                 this.Monitor.Log($"Error during analysis: {ex.Message}", LogLevel.Error);
             }
         }
+
+        private void OnDayStarted(object sender, DayStartedEventArgs e)
+        {
+            // Did the player open our letter?
+            if (Game1.player.mailReceived.Contains("Hatstravaganza.HatBoxMail") &&
+                !Game1.player.mailReceived.Contains("Hatstravaganza.HatBoxGiven"))
+            {
+                Monitor.Log("Hat Box mail detected as read — giving Hat Box!", LogLevel.Info);
+
+                GivePlayerHatBox();
+
+                // Prevent duplicates
+                Game1.player.mailReceived.Add("Hatstravaganza.HatBoxGiven");
+            }
+        }
+
+
+
+
     }
 }
