@@ -47,6 +47,7 @@ namespace Hatstravaganza
             helper.Events.GameLoop.SaveLoaded += this.OnSaveLoaded;
             helper.Events.GameLoop.Saved += this.OnSaved;
             helper.Events.Content.AssetRequested += this.OnAssetRequested;
+            // helper.Events.Player.MailReceived += OnMailReceived;
 
 
             helper.Events.Display.MenuChanged += this.OnMenuChanged;
@@ -55,6 +56,9 @@ namespace Hatstravaganza
             helper.Events.World.ObjectListChanged += OnObjectListChanged;
 
             //debug stuff
+            helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
+            helper.ConsoleCommands.Add("hat_dumpmail", "Dump player's mailReceived to log", DumpMailCommand);
+
 
 
             // ... console commands
@@ -72,6 +76,50 @@ namespace Hatstravaganza
 
         }
 
+        //debug for mail
+        private void OnUpdateTicked(object sender, StardewModdingAPI.Events.UpdateTickedEventArgs e)
+        {
+            // Only run when world ready and once per second-ish to avoid spam
+            if (!Context.IsWorldReady)
+                return;
+
+            // throttle: run every 60 ticks (~1 second)
+            if (e.Ticks % 60 != 0)
+                return;
+
+            // sanity
+            if (Game1.player == null)
+                return;
+
+            const string mailId = "Hatstravaganza.HatBoxMail";
+            const string givenFlag = "Hatstravaganza.HatBoxGiven";
+
+            // If player has read the mail but we haven't given the box yet
+            if (Game1.player.mailReceived.Contains(mailId) &&
+                !Game1.player.mailReceived.Contains(givenFlag))
+            {
+                Monitor.Log("Detected Hat Box mail in mailReceived — giving Hat Box now.", LogLevel.Info);
+
+                GivePlayerHatBox();
+
+                // mark so we don't give it again
+                Game1.player.mailReceived.Add(givenFlag);
+            }
+        }
+
+
+        private void DumpMailCommand(string cmd, string[] args)
+        {
+            if (Game1.player == null)
+            {
+                Monitor.Log("player is null", LogLevel.Info);
+                return;
+            }
+
+            Monitor.Log("=== player.mailReceived ===", LogLevel.Info);
+            foreach (var id in Game1.player.mailReceived)
+                Monitor.Log($"  {id}", LogLevel.Info);
+        }
 
         private void OnSaved(object sender, SavedEventArgs e)
         {
@@ -88,6 +136,7 @@ namespace Hatstravaganza
                 if (itemGrabMenu.context is Chest chest && chest.Name == "Hat Box")
                 {
                     this.Monitor.Log("Hat Box closed, refilling...", LogLevel.Debug);
+                    FillHatBox(chest);
                 }
             }
 
@@ -112,6 +161,7 @@ namespace Hatstravaganza
                 this.Monitor.Log("Player already has Hat Box", LogLevel.Debug);
             }
         }
+
 
         private void GivePlayerHatBox()
         {
@@ -150,7 +200,6 @@ namespace Hatstravaganza
             {
                 int currentCount = 0;
 
-                // IMPORTANT: use chest.items — not chest.Items
                 foreach (var item in chest.Items)
                 {
                     if (item is StardewValley.Object obj && obj.ItemId == itemId)
@@ -163,7 +212,7 @@ namespace Hatstravaganza
                     Monitor.Log($"Adding {hatsToAdd} of {itemId}", LogLevel.Debug);
                     StardewValley.Object hatItem = new StardewValley.Object(itemId, hatsToAdd);
 
-                    chest.Items.Add(hatItem);   // <-- IMPORTANT FIX
+                    chest.Items.Add(hatItem);
                 }
             }
 
@@ -300,29 +349,44 @@ namespace Hatstravaganza
             // Patch item spritesheet to add custom hat icons
             if (e.NameWithoutLocale.IsEquivalentTo("Maps/springobjects"))
             {
-
                 e.Edit(asset =>
                 {
                     var editor = asset.AsImage();
-
-                    // Get all hat item IDs
                     var hatItemIds = hatRenderer.GetAllHatItemIds();
 
+                    this.Monitor.Log($"Patching {hatItemIds.Count} hat icons into spritesheet", LogLevel.Debug);
+
+                    // CALCULATE MAX HEIGHT NEEDED FIRST
+                    int maxId = 0;
                     foreach (var itemId in hatItemIds)
                     {
-                        // Parse the item ID to get position in spritesheet
+                        if (int.TryParse(itemId, out int id) && id > maxId)
+                            maxId = id;
+                    }
+
+                    // EXTEND ONCE before patching anything
+                    if (maxId > 0)
+                    {
+                        int maxY = (maxId / 24) * 16 + 16;
+                        if (maxY > editor.Data.Height)
+                        {
+                            this.Monitor.Log($"Extending spritesheet from {editor.Data.Height} to {maxY}", LogLevel.Debug);
+                            editor.ExtendImage(minWidth: editor.Data.Width, minHeight: maxY);
+                        }
+                    }
+
+                    // NOW patch all icons
+                    foreach (var itemId in hatItemIds)
+                    {
                         if (int.TryParse(itemId, out int id))
                         {
-                            // Calculate position in 24-wide spritesheet
                             int x = (id % 24) * 16;
                             int y = (id / 24) * 16;
 
-                            // Get the icon from renderer
-                            icon = hatRenderer.GetItemIcon(itemId);
+                            Texture2D icon = hatRenderer.GetItemIcon(itemId);
 
                             if (icon != null)
                             {
-                                // Patch into spritesheet
                                 editor.PatchImage(icon, null, new Rectangle(x, y, 16, 16));
                                 this.Monitor.Log($"Patched icon for item {itemId} at ({x}, {y})", LogLevel.Debug);
                             }
@@ -330,7 +394,45 @@ namespace Hatstravaganza
                     }
                 });
             }
+            // Register custom hat items
+            if (e.NameWithoutLocale.IsEquivalentTo("Data/Objects"))
+            {
+                e.Edit(asset =>
+                {
+                    var data = asset.AsDictionary<string, StardewValley.GameData.Objects.ObjectData>().Data;
+                    var hatItemIds = hatRenderer.GetAllHatItemIds();
+
+                    foreach (string itemId in hatItemIds)
+                    {
+                        if (!data.ContainsKey(itemId))
+                        {
+                            string hatName = hatRenderer.GetHatNameFromItemId(itemId);
+
+                            // Create ObjectData for this hat
+                            data[itemId] = new StardewValley.GameData.Objects.ObjectData
+                            {
+                                Name = hatName,
+                                DisplayName = hatName,
+                                Description = $"A stylish hat from Hatstravaganza.",
+                                Type = "Basic",
+                                Category = -999, // Miscellaneous
+                                Price = 50,
+                                Texture = null, // Uses default spritesheet
+                                SpriteIndex = int.Parse(itemId)
+                            };
+
+                            this.Monitor.Log($"Registered {hatName} as item {itemId}", LogLevel.Debug);
+                        }
+                    }
+
+                    this.Monitor.Log($"Registered {hatItemIds.Count} hat items in Data/Objects", LogLevel.Info);
+                });
+            }
+
+
+
         }
+
 
 
 
