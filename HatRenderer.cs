@@ -54,6 +54,8 @@ namespace Hatstravaganza
             // LoadHatRegistry();   // Load first
             LoadHatSprites();    // Then load textures
             LoadHatOffsets();
+            monitor.Log($"Hat offsets have been called and run", LogLevel.Info);
+
         }
 
         /// <summary>
@@ -68,52 +70,7 @@ namespace Hatstravaganza
             return null;
         }
 
-        private void LoadHatRegistry()
-        {
-            try
-            {
-                string registryPath = Path.Combine(helper.DirectoryPath, "hat-registry.json");
 
-                if (!File.Exists(registryPath))
-                {
-                    monitor.Log("hat-registry.json not found, creating default...", LogLevel.Warn);
-
-                    // Create default registry
-                    var defaultRegistry = new Dictionary<string, string>
-            {
-                { "pumpkin-hat", "305" },
-                { "santa-hat", "442" }
-            };
-
-                    string json = Newtonsoft.Json.JsonConvert.SerializeObject(defaultRegistry, Newtonsoft.Json.Formatting.Indented);
-                    File.WriteAllText(registryPath, json);
-                }
-
-                // Load registry
-                string registryJson = File.ReadAllText(registryPath);
-                var fileNameToItemId = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(registryJson);
-
-                // Reverse the mapping: itemId -> hatName
-                itemIdToHatName = new Dictionary<string, string>();
-
-                foreach (var entry in fileNameToItemId)
-                {
-                    string fileName = entry.Key;
-                    string itemId = entry.Value;
-                    string hatName = FormatHatName(fileName);
-
-                    itemIdToHatName[itemId] = hatName;
-                    monitor.Log($"  Registered: Item {itemId} -> {hatName}", LogLevel.Debug);
-                }
-
-                monitor.Log($"Loaded {itemIdToHatName.Count} hat registrations", LogLevel.Info);
-            }
-            catch (Exception ex)
-            {
-                monitor.Log($"Failed to load hat registry: {ex.Message}", LogLevel.Error);
-                itemIdToHatName = new Dictionary<string, string>();
-            }
-        }
         private void LoadHatSprites()
         {
             try
@@ -149,7 +106,7 @@ namespace Hatstravaganza
 
 
                 itemIdToHatName.Clear();
-                int nextId = 800;
+                int nextId = 950;
 
                 foreach (string filePath in pngFiles)
                 {
@@ -169,13 +126,19 @@ namespace Hatstravaganza
                             itemIdToHatName[itemId] = hatName;
 
                             // Extract item icon
+                            // In HatRenderer LoadHatSprites, after extracting icon:
                             Texture2D icon = ExtractItemIcon(texture);
                             if (icon != null)
                             {
                                 itemIcons[itemId] = icon;
+                                monitor.Log($"  Created 16×16 icon for {hatName}", LogLevel.Debug);
+                            }
+                            else
+                            {
+                                monitor.Log($"  Failed to create icon for {hatName}", LogLevel.Warn);
                             }
 
-                            monitor.Log($"  ✓ {hatName} → Item ID {itemId}", LogLevel.Info);
+                            //monitor.Log($"  ✓ {hatName} → Item ID {itemId}", LogLevel.Info);
                             nextId++;
                         }
                     }
@@ -424,13 +387,16 @@ namespace Hatstravaganza
             // Add animation offsets
             npcPosition.Y += npc.yJumpOffset;
 
-            // Add walking bob animation
+            // Add walking bob
             if (npc.Sprite != null && npc.Sprite.currentFrame % 2 == 1)
             {
-                npcPosition.Y -= -4;
+                npcPosition.Y -= 4;
             }
 
             HatOffset offset = GetOffsetForNPC(npc.Name, direction);
+
+            // DEBUG: Log the offset being used
+            monitor.Log($"Drawing {hatName} on {npc.Name} (dir {direction}): offset=({offset.X}, {offset.Y})", LogLevel.Debug);
 
             float hatScale = 3f;
             float npcSpriteWidth = 64f;

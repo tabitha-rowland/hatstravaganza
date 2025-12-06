@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("hatstravaganza")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+09373c60ca6a90110fe7b21b98926dd63e4222fa")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8b1d501263246cdda744c9072f445a70eea48988")]
 [assembly: System.Reflection.AssemblyProductAttribute("hatstravaganza")]
 [assembly: System.Reflection.AssemblyTitleAttribute("hatstravaganza")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

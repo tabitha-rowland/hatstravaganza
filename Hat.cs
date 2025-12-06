@@ -9,19 +9,19 @@ namespace Hatstravaganza
     {
         public int X { get; set; }
         public int Y { get; set; }
-
+        
         public HatOffset()
         {
             X = 0;
             Y = -8; // Default offset
         }
-
+        
         public HatOffset(int x, int y)
         {
             X = x;
             Y = y;
         }
-
+        
         /// <summary>
         /// Convert to Vector2 for rendering
         /// </summary>
@@ -30,7 +30,7 @@ namespace Hatstravaganza
             return new Vector2(X, Y);
         }
     }
-
+    
     /// <summary>
     /// Stores hat offsets for all four directions
     /// </summary>
@@ -40,7 +40,7 @@ namespace Hatstravaganza
         public HatOffset Up { get; set; }
         public HatOffset Left { get; set; }
         public HatOffset Right { get; set; }
-
+        
         public NPCHatOffsets()
         {
             // Default offsets for all directions
@@ -49,7 +49,7 @@ namespace Hatstravaganza
             Left = new HatOffset(0, -8);
             Right = new HatOffset(0, -8);
         }
-
+        
         /// <summary>
         /// Get offset for a specific direction
         /// </summary>
