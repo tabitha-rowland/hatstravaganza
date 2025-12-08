@@ -5,6 +5,7 @@ using StardewModdingAPI.Events;
 using StardewValley;
 using StardewValley.Objects;
 using Microsoft.Xna.Framework.Graphics;
+using System.Collections.Generic;
 
 
 namespace Hatstravaganza
@@ -12,13 +13,13 @@ namespace Hatstravaganza
     //The mod entry point.
     internal sealed class ModEntry : Mod
     {
-        private HatRenderer hatRenderer; 
+        private HatRenderer hatRenderer;
         private DialogueManager dialogueManager;
 
         private bool waitingForHatMail;
         private HatManager hatManager;
 
-        private SpriteAnalyzer spriteAnalyzer;  
+        private SpriteAnalyzer spriteAnalyzer;
 
         private Texture2D icon;
 
@@ -27,7 +28,7 @@ namespace Hatstravaganza
         ///         
         public override void Entry(IModHelper helper)
         {
-            this.Monitor.Log("Hatstravaganza mod loaded!", LogLevel.Info);
+            // this.Monitor.Log("Hatstravaganza mod loaded!", LogLevel.Info);
 
             // Create managers
             hatRenderer = new HatRenderer(helper, this.Monitor);
@@ -42,7 +43,6 @@ namespace Hatstravaganza
             helper.Events.GameLoop.SaveLoaded += this.OnSaveLoaded;
             helper.Events.GameLoop.Saved += this.OnSaved;
             helper.Events.Content.AssetRequested += this.OnAssetRequested;
-            // helper.Events.Player.MailReceived += OnMailReceived;
 
 
             helper.Events.Display.MenuChanged += this.OnMenuChanged;
@@ -52,22 +52,18 @@ namespace Hatstravaganza
 
             //debug stuff
             helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
-            helper.ConsoleCommands.Add("hat_dumpmail", "Dump player's mailReceived to log", DumpMailCommand);
 
 
-
-            // ... console commands
-            helper.ConsoleCommands.Add("hat_all", "Give all NPCs a hat", GiveAllNPCsHatsCommand);
+            // console commands
+            helper.ConsoleCommands.Add("hat_all", "Give all NPCs a hat\n \nUsage example: hat_all \"Santa Hat\"", GiveAllNPCsHatsCommand);
 
             // Adjust hats
             helper.ConsoleCommands.Add("hat_remove", "Remove hat from an NPC\n\nUsage: hat_remove <npc_name>", RemoveHatCommand);
             helper.ConsoleCommands.Add("hat_clear", "Remove all hats from all NPCs", ClearAllHatsCommand);
 
-            helper.ConsoleCommands.Add("hat_adjust", "Adjust hat offset in real-time\n\nUsage: hat_adjust <npc> <direction> <x|y> <amount>", HatAdjustCommand);
-            helper.ConsoleCommands.Add("hat_save", "Save current offsets to JSON file", HatSaveCommand);
-            helper.ConsoleCommands.Add("hat_show", "Show current offsets for an NPC\n\nUsage: hat_show <npc_name>", HatShowCommand);
-
-            helper.ConsoleCommands.Add("hat_analyze", "Analyze NPC sprites and generate hat offsets", AnalyzeSpritesCommand);
+            // helper.ConsoleCommands.Add("hat_adjust", "Adjust hat offset in real-time\n\nUsage: hat_adjust <npc> <direction> <x|y> <amount>", HatAdjustCommand);
+            // helper.ConsoleCommands.Add("hat_save", "Save current offsets to JSON file", HatSaveCommand);
+            // helper.ConsoleCommands.Add("hat_show", "Show current offsets for an NPC\n\nUsage: hat_show <npc_name>", HatShowCommand);
 
         }
 
@@ -100,20 +96,6 @@ namespace Hatstravaganza
                 // mark so we don't give it again
                 Game1.player.mailReceived.Add(givenFlag);
             }
-        }
-
-
-        private void DumpMailCommand(string cmd, string[] args)
-        {
-            if (Game1.player == null)
-            {
-                Monitor.Log("player is null", LogLevel.Info);
-                return;
-            }
-
-            Monitor.Log("=== player.mailReceived ===", LogLevel.Info);
-            foreach (var id in Game1.player.mailReceived)
-                Monitor.Log($"  {id}", LogLevel.Info);
         }
 
         private void OnSaved(object sender, SavedEventArgs e)
@@ -249,20 +231,32 @@ namespace Hatstravaganza
 
             if (e.Button == SButton.MouseLeft || e.Button == SButton.MouseRight)
             {
-                if (Game1.player?.ActiveObject != null)
+                Vector2 tile = e.Cursor.GrabTile;
+                NPC npc = Game1.currentLocation?.isCharacterAtTile(tile);
+
+                if (npc != null && Game1.player?.ActiveObject != null)
                 {
-                    Vector2 tile = e.Cursor.GrabTile;
-                    NPC npc = Game1.currentLocation?.isCharacterAtTile(tile);
+                    float distance = Vector2.Distance(Game1.player.Tile, npc.Tile);
+                    if (distance > 2f) // Only works within 2 tiles
+                        return;
 
-                    if (npc != null)
+                    StardewValley.Object heldItem = Game1.player.ActiveObject;
+                    string hatName = hatRenderer.GetHatNameFromItemId(heldItem.ItemId);
+
+                    if (hatName != null)
                     {
-                        StardewValley.Object heldItem = Game1.player.ActiveObject;
-
-                        // Check if this item ID is registered as a hat
-                        string hatName = hatRenderer.GetHatNameFromItemId(heldItem.ItemId);
-
-                        if (hatName != null)
+                        // Check if NPC already has a hat
+                        if (hatManager.NPCHasHat(npc.Name))
                         {
+                            string currentHat = hatManager.GetNPCHat(npc.Name);
+
+                            // Show remove/replace dialogue
+                            ShowHatReplaceDialogue(npc, currentHat, hatName);
+                            Helper.Input.Suppress(e.Button);
+                        }
+                        else
+                        {
+                            // Normal gifting
                             this.Monitor.Log($"Player is gifting {hatName} to {npc.Name}", LogLevel.Info);
                             dialogueManager.ShowHatGiftConfirmation(npc, hatName);
                             Helper.Input.Suppress(e.Button);
@@ -270,6 +264,39 @@ namespace Hatstravaganza
                     }
                 }
             }
+        }
+
+        private void ShowHatReplaceDialogue(NPC npc, string currentHat, string newHat)
+        {
+            List<Response> responses = new List<Response>
+            {
+                new Response("Replace", $"Replace with {newHat}"),
+                new Response("Remove", "Just remove current hat"),
+                new Response("Cancel", "Cancel")
+            };
+
+            Game1.currentLocation.createQuestionDialogue(
+                $"{npc.Name} is wearing {currentHat}. What would you like to do?",
+                responses.ToArray(),
+                (who, answer) =>
+                {
+                    if (answer == "Replace")
+                    {
+                        // Remove old hat, give new one
+                        hatManager.RemoveHatFromNPC(npc.Name);
+                        Game1.player.reduceActiveItemByOne();
+                        hatManager.GiveHatToNPC(npc.Name, newHat);
+                        // Game1.addHUDMessage(new HUDMessage($"{npc.Name} now wears {newHat}!", 2));
+                    }
+                    else if (answer == "Remove")
+                    {
+                        // Just remove, don't consume held item
+                        hatManager.RemoveHatFromNPC(npc.Name);
+                        // Game1.addHUDMessage(new HUDMessage($"Removed {currentHat} from {npc.Name}", 2));
+                    }
+                    // Cancel does nothing
+                }
+            );
         }
 
 
@@ -349,7 +376,7 @@ namespace Hatstravaganza
                     var editor = asset.AsImage();
                     var hatItemIds = hatRenderer.GetAllHatItemIds();
 
-                    this.Monitor.Log($"Patching {hatItemIds.Count} hat icons into spritesheet", LogLevel.Debug);
+                    // this.Monitor.Log($"Patching {hatItemIds.Count} hat icons into spritesheet", LogLevel.Debug);
 
                     // CALCULATE MAX HEIGHT NEEDED FIRST
                     int maxId = 0;
@@ -365,7 +392,7 @@ namespace Hatstravaganza
                         int maxY = (maxId / 24) * 16 + 16;
                         if (maxY > editor.Data.Height)
                         {
-                            this.Monitor.Log($"Extending spritesheet from {editor.Data.Height} to {maxY}", LogLevel.Debug);
+                            // this.Monitor.Log($"Extending spritesheet from {editor.Data.Height} to {maxY}", LogLevel.Debug);
                             editor.ExtendImage(minWidth: editor.Data.Width, minHeight: maxY);
                         }
                     }
@@ -383,7 +410,7 @@ namespace Hatstravaganza
                             if (icon != null)
                             {
                                 editor.PatchImage(icon, null, new Rectangle(x, y, 16, 16));
-                                this.Monitor.Log($"Patched icon for item {itemId} at ({x}, {y})", LogLevel.Debug);
+                                // this.Monitor.Log($"Patched icon for item {itemId} at ({x}, {y})", LogLevel.Debug);
                             }
                         }
                     }
@@ -420,7 +447,7 @@ namespace Hatstravaganza
                         }
                     }
 
-                    this.Monitor.Log($"Registered {hatItemIds.Count} hat items in Data/Objects", LogLevel.Info);
+                    // this.Monitor.Log($"Registered {hatItemIds.Count} hat items in Data/Objects", LogLevel.Info);
                 });
             }
 
@@ -522,7 +549,45 @@ namespace Hatstravaganza
 
         private void GiveAllNPCsHatsCommand(string command, string[] args)
         {
-            // List of all giftable NPCs
+            // Check if hat name was provided
+            if (args.Length == 0)
+            {
+                this.Monitor.Log("Usage: hat_all <hat_name>", LogLevel.Info);
+                this.Monitor.Log("Example: hat_all \"Pumpkin Hat\"", LogLevel.Info);
+                return;
+            }
+
+            // Get the hat name from arguments (handles multi-word names)
+            string hatName = string.Join(" ", args);
+
+            // Check if this is a valid hat name
+            var allHatIds = hatRenderer.GetAllHatItemIds();
+            bool isValidHat = false;
+
+            foreach (var itemId in allHatIds)
+            {
+                string registeredHatName = hatRenderer.GetHatNameFromItemId(itemId);
+                if (registeredHatName != null && registeredHatName.Equals(hatName, StringComparison.OrdinalIgnoreCase))
+                {
+                    isValidHat = true;
+                    hatName = registeredHatName; // Use exact casing
+                    break;
+                }
+            }
+
+            if (!isValidHat)
+            {
+                this.Monitor.Log($"'{hatName}' is not a valid hat name.", LogLevel.Error);
+                this.Monitor.Log("Available hats:", LogLevel.Info);
+                foreach (var itemId in allHatIds)
+                {
+                    string availableHat = hatRenderer.GetHatNameFromItemId(itemId);
+                    this.Monitor.Log($"  - {availableHat}", LogLevel.Info);
+                }
+                return;
+            }
+
+            // Give the specified hat to all NPCs
             string[] allNPCs = new string[]
             {
         "Abigail", "Alex", "Caroline", "Clint", "Demetrius", "Dwarf", "Elliott",
@@ -535,11 +600,11 @@ namespace Hatstravaganza
             int count = 0;
             foreach (string npcName in allNPCs)
             {
-                hatManager.GiveHatToNPC(npcName, "Santa Hat");
+                hatManager.GiveHatToNPC(npcName, hatName);
                 count++;
             }
 
-            this.Monitor.Log($"Gave hats to {count} NPCs!", LogLevel.Info);
+            this.Monitor.Log($"Gave {hatName} to {count} NPCs!", LogLevel.Info);
         }
 
 

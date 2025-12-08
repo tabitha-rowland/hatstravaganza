@@ -17,9 +17,18 @@
 ### By Tabitha Rowland
 
 ### Features
-Gift two premade custom hats to NPCs in game. Santa Hat and Pumpkin Hat.
-Use and add your own custom hats to gift to NPCs in Stardew Valley.
-Gives you a hat gallery in the form of a chest where you can grab hats infinitely.
+- Gift two premade custom hats to NPCs in game. Santa Hat and Pumpkin Hat.
+- Use and add your own custom hats to gift to NPCs in Stardew Valley.
+- Gives you a hat gallery in the form of a chest where you can grab hats infinitely.
+- Some console commands! 
+### Commands
+
+```hat_all "hat name"``` gives all the NPCs a hat if the hat name is valid. Example: ```hat_all "Santa Hat"```
+
+```hat_remove <npc name>``` removes the hat from the specified NPC. Example: ```hat_remove Abigail```
+
+```hat_clear``` removes all hats from all NPCs.
+
 
 ### Installation
 
@@ -46,7 +55,7 @@ This is due to many of the 33 NPCs having custom unique animations. In this mod 
 
 >Sometimes the NPCs accept the hat as though it is a gift. This will use the gift limit. 
 
-This is something I programmed around and happens very rarely. In theory it should not be happening now that my items are entirely custom, but if you see it happening, let me know!
+This is something I programmed around and happens very rarely. In theory it should not be happening now that my items are entirely custom, but if you see it happening, let me know! At least the hats are a universally liked item, so hopefully this won't cause you any trouble. 
 
 >Hat box items do not sort properly into stacks of the same type if not manually grouped. The hatbox also allows for stacks of more than the standard 36. 
 
@@ -59,3 +68,15 @@ Yes... If anyone has sprite sheet versions of all NPCs and their animations wher
 >Willy and Wizard won't wear hats
 
 This is a continuation of the issue above. These characters already wear large hats that will aggressively peek out behind the hats this mod implements.
+
+>Hats will sit on the top layer of the world, and get stuck when animations like the bus begins. 
+
+Fixing this would require a huuge overhaul of the way hats are drawn. Hope you understand!
+
+>Dialogue art doesn't show the characters in the hats. 
+
+Couldn't quite get this to work in time. It's on the list for future updates!
+
+>Hats don't always fit in with the in game lighting. 
+
+This is for the same reason as the layering issue. 

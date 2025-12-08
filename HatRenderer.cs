@@ -40,7 +40,7 @@ namespace Hatstravaganza
             this.monitor = monitor;
 
 
-            monitor.Log("Initializing HatRenderer...", LogLevel.Info);
+            // monitor.Log("Initializing HatRenderer...", LogLevel.Info);
 
             // Initialize defaults
             defaultOffsets = new NPCHatOffsets();
@@ -54,7 +54,7 @@ namespace Hatstravaganza
             // LoadHatRegistry();   // Load first
             LoadHatSprites();    // Then load textures
             LoadHatOffsets();
-            monitor.Log($"Hat offsets have been called and run", LogLevel.Info);
+            // monitor.Log($"Hat offsets have been called and run", LogLevel.Info);
 
         }
 
@@ -94,7 +94,7 @@ namespace Hatstravaganza
                     {
                         if (Path.GetFileNameWithoutExtension(png) + "-item" == Path.GetFileNameWithoutExtension(itemPng))
                         {
-                            monitor.Log($"Removing item texture {Path.GetFileName(itemPng)} from hat list", LogLevel.Info);
+                            // monitor.Log($"Removing item texture {Path.GetFileName(itemPng)} from hat list", LogLevel.Info);
                             List<string> tempList = new List<string>(pngFiles);
                             tempList.Remove(itemPng);
                             pngFiles = tempList.ToArray();
@@ -131,7 +131,7 @@ namespace Hatstravaganza
                             if (icon != null)
                             {
                                 itemIcons[itemId] = icon;
-                                monitor.Log($"  Created 16×16 icon for {hatName}", LogLevel.Debug);
+                                // monitor.Log($"  Created 16×16 icon for {hatName}", LogLevel.Debug);
                             }
                             else
                             {
@@ -148,7 +148,7 @@ namespace Hatstravaganza
                     }
                 }
 
-                monitor.Log($"Loaded {hatTextures.Count} hats with icons", LogLevel.Info);
+                // monitor.Log($"Loaded {hatTextures.Count} hats with icons", LogLevel.Info);
             }
             catch (Exception ex)
             {
@@ -231,13 +231,13 @@ namespace Hatstravaganza
                     npcOffsets = new Dictionary<string, NPCHatOffsets>();
                 }
 
-                monitor.Log($"Loaded hat offsets for {npcOffsets.Count} NPCs", LogLevel.Info);
+                // monitor.Log($"Loaded hat offsets for {npcOffsets.Count} NPCs", LogLevel.Info);
 
                 // Log each NPC for debugging
-                foreach (var npcName in npcOffsets.Keys)
-                {
-                    monitor.Log($"  - {npcName}", LogLevel.Debug);
-                }
+                // foreach (var npcName in npcOffsets.Keys)
+                // {
+                //     monitor.Log($"  - {npcName}", LogLevel.Debug);
+                // }
             }
             catch (System.Exception ex)
             {
@@ -414,12 +414,17 @@ namespace Hatstravaganza
             float hatWidth = 16f * hatScale;
             float centerOffset = (npcSpriteWidth - hatWidth) / 2f;
 
-   
+
             Vector2 hatPosition = new Vector2(
            npcPosition.X + centerOffset + (offset.X * 4f),
            npcPosition.Y + (offset.Y * 4f) + 10  // Add extra +10 for testing
             );
 
+
+
+
+
+            float layerDepth = (npc.Position.Y + 128f) / 10000f;
 
             spriteBatch.Draw(
                 hatTexture,
@@ -430,11 +435,9 @@ namespace Hatstravaganza
                 Vector2.Zero,
                 hatScale,
                 SpriteEffects.None,
-                (npc.getStandingPosition().Y + 1) / 10000f
-
+                layerDepth
             );
         }
-
         /// <summary>
         /// Get all registered hat item IDs
         /// </summary>
