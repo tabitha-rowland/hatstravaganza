@@ -381,32 +381,45 @@ namespace Hatstravaganza
                 return;
 
             int direction = npc.FacingDirection;
-            Rectangle sourceRect = new Rectangle(direction * 16, 0, 16, 16);
+
+            // Remap Stardew directions to your sprite sheet order
+            int spriteFrame = direction switch
+            {
+                2 => 0,  // Down -> frame 0
+                0 => 1,  // Up -> frame 1
+                3 => 2,  // Left -> frame 2
+                1 => 3,  // Right -> frame 3
+                _ => 0   // Default to down
+            };
+
+            Rectangle sourceRect = new Rectangle(spriteFrame * 16, 0, 16, 16);
+
+
             Vector2 npcPosition = npc.getLocalPosition(Game1.viewport);
 
             // Add animation offsets
             npcPosition.Y += npc.yJumpOffset;
 
-            // Add walking bob
-            if (npc.Sprite != null && npc.Sprite.currentFrame % 2 == 1)
+            // Add walking bob animation
+
+            if (npc.Sprite != null && npc.Sprite.currentFrame % 2 == 1 && npc.Name != "George") // Exclude George from bobbing because of wheelchair
             {
-                npcPosition.Y -= 4;
+                npcPosition.Y -= -4;
             }
 
             HatOffset offset = GetOffsetForNPC(npc.Name, direction);
-
-            // DEBUG: Log the offset being used
-            monitor.Log($"Drawing {hatName} on {npc.Name} (dir {direction}): offset=({offset.X}, {offset.Y})", LogLevel.Debug);
 
             float hatScale = 3f;
             float npcSpriteWidth = 64f;
             float hatWidth = 16f * hatScale;
             float centerOffset = (npcSpriteWidth - hatWidth) / 2f;
 
+   
             Vector2 hatPosition = new Vector2(
-                npcPosition.X + centerOffset + (offset.X * 4f),
-                npcPosition.Y + (offset.Y * 4f)
+           npcPosition.X + centerOffset + (offset.X * 4f),
+           npcPosition.Y + (offset.Y * 4f) + 10  // Add extra +10 for testing
             );
+
 
             spriteBatch.Draw(
                 hatTexture,
@@ -417,9 +430,11 @@ namespace Hatstravaganza
                 Vector2.Zero,
                 hatScale,
                 SpriteEffects.None,
-                0f
+                (npc.getStandingPosition().Y + 1) / 10000f
+
             );
         }
+
         /// <summary>
         /// Get all registered hat item IDs
         /// </summary>

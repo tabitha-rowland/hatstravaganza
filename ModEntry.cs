@@ -2,28 +2,23 @@ using System;
 using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
-using StardewModdingAPI.Utilities;
 using StardewValley;
 using StardewValley.Objects;
-using StardewValley.Characters;
-using System.Collections;
 using Microsoft.Xna.Framework.Graphics;
-using System.Reflection;
-using System.Linq;
 
 
 namespace Hatstravaganza
 {
-    /// <summary>The mod entry point.</summary>
+    //The mod entry point.
     internal sealed class ModEntry : Mod
     {
-        private HatRenderer hatRenderer; // Instance of HatRenderer to manage hat drawing
+        private HatRenderer hatRenderer; 
         private DialogueManager dialogueManager;
 
         private bool waitingForHatMail;
         private HatManager hatManager;
 
-        private SpriteAnalyzer spriteAnalyzer;  // Add this
+        private SpriteAnalyzer spriteAnalyzer;  
 
         private Texture2D icon;
 
@@ -534,13 +529,13 @@ namespace Hatstravaganza
         "Emily", "Evelyn", "George", "Gus", "Haley", "Harvey", "Jas", "Jodi",
         "Kent", "Krobus", "Leah", "Lewis", "Linus", "Marnie", "Maru", "Pam",
         "Penny", "Pierre", "Robin", "Sam", "Sandy", "Sebastian", "Shane",
-        "Vincent", "Willy", "Wizard"
+        "Vincent"
             };
 
             int count = 0;
             foreach (string npcName in allNPCs)
             {
-                hatManager.GiveHatToNPC(npcName, "Pumpkin Hat");
+                hatManager.GiveHatToNPC(npcName, "Santa Hat");
                 count++;
             }
 

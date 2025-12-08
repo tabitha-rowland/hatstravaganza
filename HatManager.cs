@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
 using StardewModdingAPI;
-using StardewValley;
 
 namespace Hatstravaganza
 {

@@ -1,9 +1,6 @@
 using System;
 using StardewModdingAPI;
 using StardewValley;
-using StardewValley.Menus;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 
 
 namespace Hatstravaganza
@@ -49,7 +46,7 @@ namespace Hatstravaganza
         {
             monitor.Log($"Player answered: {answer}", LogLevel.Debug);
 
-            if (answer == "Yes")
+            if (answer == "Yes" && npc.Name != "Willy" && npc.Name != "Wizard")
             {
                 monitor.Log($"Player confirmed gifting {hatName} to {npc.Name}", LogLevel.Info);
 
@@ -58,6 +55,14 @@ namespace Hatstravaganza
 
                 // Trigger the confirmed event
                 OnHatGiftConfirmed?.Invoke(npc, hatName);
+            }
+            else if (npc.Name == "Willy" || npc.Name == "Wizard")
+            {
+                monitor.Log($"Gifting hats to {npc.Name} is not supported because they already have a built-in hat.", LogLevel.Info);
+                // Show a message that this NPC cannot receive hats
+                ShowNPCDialogue(npc, "Oh.. thanks... but I already have a hat.");
+                // ShowNPCDialogue(npc, "Ummm no. In case you haven't noticed, I'm weird. I'm a weirdo. I don't fit it, and I don't... wanna fit in. Have you ever seen me without this stupid hat on? That's weird. So, no.");
+
             }
             else
             {
@@ -70,7 +75,7 @@ namespace Hatstravaganza
         private void ShowNPCReceivedHatDialogue(NPC npc, string hatName)
         {
             // Create a custom dialogue for the NPC
-            string dialogueText = $"Oh, a {hatName}! Thank you, I'll wear it proudly!$h";
+            string dialogueText = $"Oh, a {hatName}! Thanks!$h";
 
             Dialogue dialogue = new Dialogue(npc, null, dialogueText);
             npc.CurrentDialogue.Push(dialogue);
