@@ -2,9 +2,7 @@ using Microsoft.Xna.Framework;
 
 namespace Hatstravaganza
 {
-    /// <summary>
-    /// Represents positioning offset data for a hat
-    /// </summary>
+    // positioning offset data for a hat
     public class HatOffset
     {
         public int X { get; set; }
@@ -22,18 +20,13 @@ namespace Hatstravaganza
             Y = y;
         }
         
-        /// <summary>
-        /// Convert to Vector2 for rendering
-        /// </summary>
         public Vector2 ToVector2()
         {
             return new Vector2(X, Y);
         }
     }
     
-    /// <summary>
-    /// Stores hat offsets for all four directions
-    /// </summary>
+    // Stores hat offsets for all four directions
     public class NPCHatOffsets
     {
         public HatOffset Down { get; set; }
@@ -50,10 +43,8 @@ namespace Hatstravaganza
             Right = new HatOffset(0, -8);
         }
         
-        /// <summary>
-        /// Get offset for a specific direction
-        /// </summary>
-        /// <param name="direction">0=up, 1=right, 2=down, 3=left</param>
+        // Get offset for a specific direction
+        // <param name="direction">0=up, 1=right, 2=down, 3=left</param>
         public HatOffset GetOffsetForDirection(int direction)
         {
             return direction switch

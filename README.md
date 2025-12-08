@@ -18,7 +18,8 @@
 
 ### Features
 - Gift two premade custom hats to NPCs in game. Santa Hat and Pumpkin Hat.
-- Use and add your own custom hats to gift to NPCs in Stardew Valley.
+- Remove hats by clicking an NPC while holding any hat item, or use the console command.
+- Add and use your own custom hats to gift to NPCs in Stardew Valley.
 - Gives you a hat gallery in the form of a chest where you can grab hats infinitely.
 - Some console commands! 
 ### Commands
@@ -39,9 +40,9 @@ Installation is as easy as any other Stardew Valley mod. Use SMAPI to download a
 
 To add your own hat art to the game, 
 1. Exit the game if open.
-2. Place a copy of your 16x64 png file into the assets folder and a single 16x16 png square from your art to use as the hat item icon. 
-3. Name the files whatever-hat.png and whatever-hat-icon.png where "whatever" is a descriptor for your type of hat. 
-4. Next time you boot up the game, your hat should be available to gift to NPCs!
+2. Place a copy of your 16x64 png file into the assets folder. 
+3. Name the file whatever-hat.png where "whatever" is a descriptor for your type of hat. 
+4. Next time you boot up the game, your hat will be available to gift to NPCs!
 
 ### Limitations
 You can only have custom hat options equal to the amount of slots in a chest (36). Follow **Adding Your Own Hats** and delete an older hat to make room. 

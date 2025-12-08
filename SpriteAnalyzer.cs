@@ -7,9 +7,7 @@ using StardewModdingAPI;
 
 namespace Hatstravaganza
 {
-    /// <summary>
-    /// Analyzes NPC sprites to calculate hat positioning offsets
-    /// </summary>
+    // Analyzes NPC sprites to calculate hat positioning offsets
     public class SpriteAnalyzer
     {
         private IModHelper helper;
@@ -21,9 +19,7 @@ namespace Hatstravaganza
             this.monitor = monitor;
         }
 
-        /// <summary>
-        /// Analyze all NPCs and generate offset data
-        /// </summary>
+        // Analyze all NPCs and generate offset data
         public Dictionary<string, NPCHatOffsets> AnalyzeAllNPCs()
         {
             var allOffsets = new Dictionary<string, NPCHatOffsets>();
@@ -57,9 +53,7 @@ namespace Hatstravaganza
             return allOffsets;
         }
 
-        /// <summary>
-        /// Analyze a single NPC's sprite to find head position
-        /// </summary>
+        // Calculate offsets for a single NPC
         private NPCHatOffsets AnalyzeNPC(string npcName)
         {
             try
@@ -95,14 +89,10 @@ namespace Hatstravaganza
             }
         }
 
-        /// <summary>
-        /// Analyze a specific direction sprite to find head position
-        /// </summary>
+        // Analyze a specific direction sprite to find head position
         private HatOffset AnalyzeDirection(Color[] pixels, int spriteWidth, int direction)
         {
-            // NPC sprites are 16x32 pixels
-            // They're arranged in rows, with each row being a different animation
-            // We want the standing frame (frame 0) for each direction
+            // NPC sprites are 16x32 pixels arranged in rows, with each row a different animation. The standing frame is frame 0 for each direction
 
             int frameX = direction * 16;  // Each frame is 16 pixels wide
             int frameY = 0;                // First row is standing frames
@@ -143,9 +133,7 @@ namespace Hatstravaganza
             return new HatOffset(0, yOffset);
         }
 
-        /// <summary>
-        /// Find the Y position of the top of the NPC's head
-        /// </summary>
+        // Find the Y position of the top of the NPC's head
         private int FindTopOfHead(Color[] pixels, int spriteWidth, int frameX, int frameY)
         {
             // Scan from top to bottom to find first non-transparent pixel

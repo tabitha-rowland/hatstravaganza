@@ -26,14 +26,12 @@ namespace Hatstravaganza
         {
             monitor.Log($"Showing gift confirmation for {hatName} to {npc.Name}", LogLevel.Debug);
 
-            // Create yes/no responses
             Response[] responses = new Response[]
             {
                 new Response("Yes", $"Give {hatName} to {npc.Name}"),
                 new Response("No", "Keep it")
             };
 
-            // Show the question dialogue
             Game1.currentLocation.createQuestionDialogue(
                 $"Give {hatName} hat to {npc.Name}?",
                 responses,
@@ -41,7 +39,7 @@ namespace Hatstravaganza
             );
         }
 
-        /// Handle the player's response to the gift confirmation
+        /// players response? 
         private void HandleHatGiftResponse(NPC npc, string hatName, string answer)
         {
             monitor.Log($"Player answered: {answer}", LogLevel.Debug);
@@ -50,7 +48,6 @@ namespace Hatstravaganza
             {
                 monitor.Log($"Player confirmed gifting {hatName} to {npc.Name}", LogLevel.Info);
 
-                // Show NPC receiving hat dialogue
                 ShowNPCReceivedHatDialogue(npc, hatName);
 
                 // Trigger the confirmed event
@@ -86,7 +83,7 @@ namespace Hatstravaganza
             monitor.Log($"{npc.Name} received the hat!", LogLevel.Debug);
         }
 
-        /// Show generic NPC dialogue (for future use)
+        /// make any npc dialogue 
         public void ShowNPCDialogue(NPC npc, string message)
         {
             Dialogue dialogue = new Dialogue(npc, null, message);

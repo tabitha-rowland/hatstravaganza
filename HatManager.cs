@@ -6,18 +6,14 @@ using StardewModdingAPI;
 
 namespace Hatstravaganza
 {
-    /// <summary>
-    /// Manages which NPCs are wearing which hats and handles save/load
-    /// </summary>
+    // Manages which NPCs are wearing which hats and handles save/load
     public class HatManager
     {
         private IModHelper helper;
         private IMonitor monitor;
         
-        // Dictionary: NPC name -> hat name
         private Dictionary<string, string> npcHats;
         
-        // Save file name
         private const string SaveFileName = "npc-hats.json";
         
         public HatManager(IModHelper helper, IMonitor monitor)
@@ -27,9 +23,7 @@ namespace Hatstravaganza
             npcHats = new Dictionary<string, string>();
         }
         
-        /// <summary>
-        /// Assign a hat to an NPC and save immediately
-        /// </summary>
+        // Assign a hat to an NPC and save immediately
         public void GiveHatToNPC(string npcName, string hatName)
         {
             if (npcHats.ContainsKey(npcName))
@@ -46,17 +40,13 @@ namespace Hatstravaganza
             
         }
         
-        /// <summary>
-        /// Check if an NPC has a hat
-        /// </summary>
+        // Check if an NPC has a hat
         public bool NPCHasHat(string npcName)
         {
             return npcHats.ContainsKey(npcName);
         }
         
-        /// <summary>
-        /// Get the hat name for an NPC
-        /// </summary>
+        // Get the hat name for an NPC
         public string GetNPCHat(string npcName)
         {
             if (npcHats.ContainsKey(npcName))
@@ -64,9 +54,7 @@ namespace Hatstravaganza
             return null;
         }
         
-        /// <summary>
-        /// Remove hat from an NPC and save
-        /// </summary>
+        // Remove hat from an NPC and save
         public void RemoveHatFromNPC(string npcName)
         {
             if (npcHats.ContainsKey(npcName))
@@ -76,9 +64,7 @@ namespace Hatstravaganza
             }
         }
         
-        /// <summary>
-        /// Save NPC hat states to JSON file
-        /// </summary>
+        // Save NPC hat states to JSON file
         public void SaveNPCHats()
         {
             try
@@ -95,13 +81,12 @@ namespace Hatstravaganza
                 // Create save folder if it doesn't exist
                 Directory.CreateDirectory(saveFolderPath);
                 
-                // Full path to save file
+                // path to save file
                 string filePath = Path.Combine(saveFolderPath, SaveFileName);
                 
                 // Serialize dictionary to JSON
                 string json = JsonConvert.SerializeObject(npcHats, Formatting.Indented);
                 
-                // Write to file
                 File.WriteAllText(filePath, json);
                 
                 monitor.Log($"Saved {npcHats.Count} NPC hat states to {filePath}", LogLevel.Debug);
@@ -112,9 +97,7 @@ namespace Hatstravaganza
             }
         }
         
-        /// <summary>
-        /// Load NPC hat states from JSON file
-        /// </summary>
+        // Load NPC hat states from JSON file
         public void LoadNPCHats()
         {
             try
@@ -128,7 +111,7 @@ namespace Hatstravaganza
                     return;
                 }
                 
-                // Full path to save file
+                // path to save file
                 string filePath = Path.Combine(saveFolderPath, SaveFileName);
                 
                 // Check if file exists
@@ -163,9 +146,8 @@ namespace Hatstravaganza
             }
         }
         
-        /// <summary>
-        /// Get the save folder path for the current save file
-        /// </summary>
+        // Get the save folder path for the current save file
+        
         private string GetSaveFolder()
         {
             // Make sure a save is loaded
@@ -181,9 +163,7 @@ namespace Hatstravaganza
             return modDataPath;
         }
         
-        /// <summary>
-        /// Clear all hat data (useful for testing)
-        /// </summary>
+        // Clear all hat data 
         public void ClearAllHats()
         {
             npcHats.Clear();
@@ -191,9 +171,7 @@ namespace Hatstravaganza
             monitor.Log("Cleared all NPC hats", LogLevel.Info);
         }
         
-        /// <summary>
-        /// Get all NPCs currently wearing hats
-        /// </summary>
+        // Get all NPCs currently wearing hats
         public Dictionary<string, string> GetAllHattedNPCs()
         {
             return new Dictionary<string, string>(npcHats);

@@ -67,37 +67,8 @@ namespace Hatstravaganza
 
         }
 
-        //debug for mail
-        private void OnUpdateTicked(object sender, StardewModdingAPI.Events.UpdateTickedEventArgs e)
-        {
-            // Only run when world ready and once per second-ish to avoid spam
-            if (!Context.IsWorldReady)
-                return;
 
-            // throttle: run every 60 ticks (~1 second)
-            if (e.Ticks % 60 != 0)
-                return;
-
-            // sanity
-            if (Game1.player == null)
-                return;
-
-            const string mailId = "Hatstravaganza.HatBoxMail";
-            const string givenFlag = "Hatstravaganza.HatBoxGiven";
-
-            // If player has read the mail but we haven't given the box yet
-            if (Game1.player.mailReceived.Contains(mailId) &&
-                !Game1.player.mailReceived.Contains(givenFlag))
-            {
-                Monitor.Log("Detected Hat Box mail in mailReceived — giving Hat Box now.", LogLevel.Info);
-
-                GivePlayerHatBox();
-
-                // mark so we don't give it again
-                Game1.player.mailReceived.Add(givenFlag);
-            }
-        }
-
+        // end of day save hats
         private void OnSaved(object sender, SavedEventArgs e)
         {
             // Save hat data when game saves
@@ -105,6 +76,7 @@ namespace Hatstravaganza
             this.Monitor.Log("Hat data saved with game save", LogLevel.Info);
         }
 
+        //call refill hat box when closed
         private void OnMenuChanged(object sender, MenuChangedEventArgs e)
         {
             // Check if a chest menu just closed (for refilling)
@@ -118,6 +90,7 @@ namespace Hatstravaganza
             }
 
         }
+        //load hats when save is loaded
         private void OnSaveLoaded(object sender, SaveLoadedEventArgs e)
         {
             this.Monitor.Log("Save loaded! Loading hat data...", LogLevel.Info);
@@ -139,22 +112,19 @@ namespace Hatstravaganza
             }
         }
 
-
+        // give hat box to player
         private void GivePlayerHatBox()
         {
             this.Monitor.Log("Creating Hat Box chest...", LogLevel.Debug);
 
-            Chest hatBox = new Chest(true); // Player chest
+            Chest hatBox = new Chest(true);
             hatBox.Name = "Hat Box";
-            hatBox.displayName = "Hat Box"; // Also set display name
+            hatBox.displayName = "Hat Box"; // display name
             hatBox.playerChest.Value = true;
             hatBox.fridge.Value = false;
             hatBox.Type = "interactive";
             hatBox.specialChestType.Value = Chest.SpecialChestTypes.None;
 
-
-
-            // Try adding as Item instead of Object
             bool added = Game1.player.addItemToInventoryBool(hatBox);
 
             if (added)
@@ -165,10 +135,11 @@ namespace Hatstravaganza
             else
             {
                 this.Monitor.Log("Failed to add Hat Box to inventory - inventory full?", LogLevel.Warn);
-                // Drop it at player's feet instead
+                // drop it on the ground
                 Game1.createItemDebris(hatBox, Game1.player.Position, -1);
             }
         }
+        // infinitely fill hat box with all hats
         private void FillHatBox(Chest chest)
         {
             var hatItemIds = hatRenderer.GetAllHatItemIds();
@@ -196,9 +167,10 @@ namespace Hatstravaganza
             Monitor.Log($"Filled Hat Box with {hatItemIds.Count} hat types", LogLevel.Debug);
         }
 
+        //detect newly placed hat box and fill it
         private void OnObjectListChanged(object sender, StardewModdingAPI.Events.ObjectListChangedEventArgs e)
         {
-            // Only react in player's current location
+            // Only react in current location
             if (!Context.IsWorldReady || e.Location != Game1.player.currentLocation)
                 return;
 
@@ -206,12 +178,10 @@ namespace Hatstravaganza
             {
                 if (added.Value is Chest chest)
                 {
-                    // Detect your Hat Box by name
                     if (chest.Name == "Hat Box")
                     {
                         Monitor.Log("Detected newly placed Hat Box — filling now.", LogLevel.Debug);
 
-                        // Fill the chest AFTER it is placed, not before
                         FillHatBox(chest);
                     }
                 }
@@ -221,9 +191,7 @@ namespace Hatstravaganza
 
 
 
-        /// <summary>Raised after the player presses a button on the keyboard, controller, or mouse.</summary>
-        /// <param name="sender">The event sender.</param>
-        /// <param name="e">The event data.</param>
+        // Handle gifting hats to NPCs
         private void OnButtonPressed(object sender, ButtonPressedEventArgs e)
         {
             if (Game1.activeClickableMenu != null)
@@ -237,7 +205,7 @@ namespace Hatstravaganza
                 if (npc != null && Game1.player?.ActiveObject != null)
                 {
                     float distance = Vector2.Distance(Game1.player.Tile, npc.Tile);
-                    if (distance > 2f) // Only works within 2 tiles
+                    if (distance > 2f) // only works within 2 tiles
                         return;
 
                     StardewValley.Object heldItem = Game1.player.ActiveObject;
@@ -266,6 +234,7 @@ namespace Hatstravaganza
             }
         }
 
+        ///show replace/remove/cancel dialogue
         private void ShowHatReplaceDialogue(NPC npc, string currentHat, string newHat)
         {
             List<Response> responses = new List<Response>
@@ -290,7 +259,6 @@ namespace Hatstravaganza
                     }
                     else if (answer == "Remove")
                     {
-                        // Just remove, don't consume held item
                         hatManager.RemoveHatFromNPC(npc.Name);
                         // Game1.addHUDMessage(new HUDMessage($"Removed {currentHat} from {npc.Name}", 2));
                     }
@@ -300,7 +268,7 @@ namespace Hatstravaganza
         }
 
 
-
+        //remove hat and save state
         private void OnHatGiftConfirmed(NPC npc, string hatName)
         {
             this.Monitor.Log($"Gift confirmed! {npc.Name} will wear {hatName}", LogLevel.Info);
@@ -308,7 +276,7 @@ namespace Hatstravaganza
             // Remove item from player inventory
             Game1.player.reduceActiveItemByOne();
 
-            // Save NPC hat state
+            // save hat state
             hatManager.GiveHatToNPC(npc.Name, hatName);
             this.Monitor.Log($"{npc.Name} now has {hatName} in hat manager", LogLevel.Debug);
         }
@@ -345,7 +313,7 @@ namespace Hatstravaganza
             }
         }
 
-
+        //make mail, hat sprites, and hat object data
         private void OnAssetRequested(object sender, AssetRequestedEventArgs e)
         {
             // Register Hat Box mail
@@ -386,7 +354,7 @@ namespace Hatstravaganza
                             maxId = id;
                     }
 
-                    // EXTEND ONCE before patching anything
+                    // extend before patching anything
                     if (maxId > 0)
                     {
                         int maxY = (maxId / 24) * 16 + 16;
@@ -397,7 +365,7 @@ namespace Hatstravaganza
                         }
                     }
 
-                    // NOW patch all icons
+                    // patch all icons
                     foreach (var itemId in hatItemIds)
                     {
                         if (int.TryParse(itemId, out int id))
@@ -430,14 +398,14 @@ namespace Hatstravaganza
                         {
                             string hatName = hatRenderer.GetHatNameFromItemId(itemId);
 
-                            // Create ObjectData for this hat
+                            // make ObjectData for this hat
                             data[itemId] = new StardewValley.GameData.Objects.ObjectData
                             {
                                 Name = hatName,
                                 DisplayName = hatName,
                                 Description = $"A stylish hat from Hatstravaganza.",
                                 Type = "Basic",
-                                Category = -999, // Miscellaneous
+                                Category = -999, // miscellaneous
                                 Price = 50,
                                 Texture = null, // Uses default spritesheet
                                 SpriteIndex = int.Parse(itemId)
@@ -454,10 +422,25 @@ namespace Hatstravaganza
 
 
         }
+        //Give hat box when mail is read    
+        private void OnDayStarted(object sender, DayStartedEventArgs e)
+        {
+            // Did the player open the letter
+            if (Game1.player.mailReceived.Contains("Hatstravaganza.HatBoxMail") &&
+                !Game1.player.mailReceived.Contains("Hatstravaganza.HatBoxGiven"))
+            {
+                Monitor.Log("Hat Box mail detected as read — giving Hat Box!", LogLevel.Info);
+
+                GivePlayerHatBox();
+
+                // Prevent duplicates
+                Game1.player.mailReceived.Add("Hatstravaganza.HatBoxGiven");
+            }
+        }
 
 
-
-
+        // --------------------CONSOLE COMMANDS--------------------
+        //remove hat from npc command, debug
         private void RemoveHatCommand(string command, string[] args)
         {
             if (args.Length == 0)
@@ -486,8 +469,70 @@ namespace Hatstravaganza
         }
 
 
-        // live tune hat placements
 
+
+        //give all npcs hats command
+        private void GiveAllNPCsHatsCommand(string command, string[] args)
+        {
+            // Check if hat name was provided
+            if (args.Length == 0)
+            {
+                this.Monitor.Log("Usage: hat_all <hat_name>", LogLevel.Info);
+                this.Monitor.Log("Example: hat_all \"Pumpkin Hat\"", LogLevel.Info);
+                return;
+            }
+
+            // Get the hat name from arguments (join in case of spaces)
+            string hatName = string.Join(" ", args);
+
+            // Check if this is a valid hat name
+            var allHatIds = hatRenderer.GetAllHatItemIds();
+            bool isValidHat = false;
+
+            foreach (var itemId in allHatIds)
+            {
+                string registeredHatName = hatRenderer.GetHatNameFromItemId(itemId);
+                if (registeredHatName != null && registeredHatName.Equals(hatName, StringComparison.OrdinalIgnoreCase))
+                {
+                    isValidHat = true;
+                    hatName = registeredHatName; // Use exact casing
+                    break;
+                }
+            }
+
+            if (!isValidHat)
+            {
+                this.Monitor.Log($"'{hatName}' is not a valid hat name.", LogLevel.Error);
+                this.Monitor.Log("Available hats:", LogLevel.Info);
+                foreach (var itemId in allHatIds)
+                {
+                    string availableHat = hatRenderer.GetHatNameFromItemId(itemId);
+                    this.Monitor.Log($"  - {availableHat}", LogLevel.Info);
+                }
+                return;
+            }
+
+            // give hat to all NPCs
+            string[] allNPCs = new string[]
+            {
+        "Abigail", "Alex", "Caroline", "Clint", "Demetrius", "Dwarf", "Elliott",
+        "Emily", "Evelyn", "George", "Gus", "Haley", "Harvey", "Jas", "Jodi",
+        "Kent", "Krobus", "Leah", "Lewis", "Linus", "Marnie", "Maru", "Pam",
+        "Penny", "Pierre", "Robin", "Sam", "Sandy", "Sebastian", "Shane",
+        "Vincent"
+            };
+
+            int count = 0;
+            foreach (string npcName in allNPCs)
+            {
+                hatManager.GiveHatToNPC(npcName, hatName);
+                count++;
+            }
+
+            this.Monitor.Log($"Gave {hatName} to {count} NPCs!", LogLevel.Info);
+        }
+
+        // live tune hat placements, debug use
         private void HatAdjustCommand(string command, string[] args)
         {
             if (args.Length < 4)
@@ -520,7 +565,7 @@ namespace Hatstravaganza
                 this.Monitor.Log($"Failed to adjust offset", LogLevel.Error);
             }
         }
-
+        //save new offsets to json, debug use
         private void HatSaveCommand(string command, string[] args)
         {
             bool success = hatRenderer.SaveCurrentOffsets();
@@ -535,6 +580,7 @@ namespace Hatstravaganza
             }
         }
 
+        //show hat offsets for npc, debug use
         private void HatShowCommand(string command, string[] args)
         {
             if (args.Length < 1)
@@ -547,67 +593,7 @@ namespace Hatstravaganza
             hatRenderer.ShowOffsets(npcName);
         }
 
-        private void GiveAllNPCsHatsCommand(string command, string[] args)
-        {
-            // Check if hat name was provided
-            if (args.Length == 0)
-            {
-                this.Monitor.Log("Usage: hat_all <hat_name>", LogLevel.Info);
-                this.Monitor.Log("Example: hat_all \"Pumpkin Hat\"", LogLevel.Info);
-                return;
-            }
-
-            // Get the hat name from arguments (handles multi-word names)
-            string hatName = string.Join(" ", args);
-
-            // Check if this is a valid hat name
-            var allHatIds = hatRenderer.GetAllHatItemIds();
-            bool isValidHat = false;
-
-            foreach (var itemId in allHatIds)
-            {
-                string registeredHatName = hatRenderer.GetHatNameFromItemId(itemId);
-                if (registeredHatName != null && registeredHatName.Equals(hatName, StringComparison.OrdinalIgnoreCase))
-                {
-                    isValidHat = true;
-                    hatName = registeredHatName; // Use exact casing
-                    break;
-                }
-            }
-
-            if (!isValidHat)
-            {
-                this.Monitor.Log($"'{hatName}' is not a valid hat name.", LogLevel.Error);
-                this.Monitor.Log("Available hats:", LogLevel.Info);
-                foreach (var itemId in allHatIds)
-                {
-                    string availableHat = hatRenderer.GetHatNameFromItemId(itemId);
-                    this.Monitor.Log($"  - {availableHat}", LogLevel.Info);
-                }
-                return;
-            }
-
-            // Give the specified hat to all NPCs
-            string[] allNPCs = new string[]
-            {
-        "Abigail", "Alex", "Caroline", "Clint", "Demetrius", "Dwarf", "Elliott",
-        "Emily", "Evelyn", "George", "Gus", "Haley", "Harvey", "Jas", "Jodi",
-        "Kent", "Krobus", "Leah", "Lewis", "Linus", "Marnie", "Maru", "Pam",
-        "Penny", "Pierre", "Robin", "Sam", "Sandy", "Sebastian", "Shane",
-        "Vincent"
-            };
-
-            int count = 0;
-            foreach (string npcName in allNPCs)
-            {
-                hatManager.GiveHatToNPC(npcName, hatName);
-                count++;
-            }
-
-            this.Monitor.Log($"Gave {hatName} to {count} NPCs!", LogLevel.Info);
-        }
-
-
+        //autogenerate hat offsets
         private void AnalyzeSpritesCommand(string command, string[] args)
         {
             this.Monitor.Log("Analyzing NPC sprites...", LogLevel.Info);
@@ -633,22 +619,38 @@ namespace Hatstravaganza
             }
         }
 
-        private void OnDayStarted(object sender, DayStartedEventArgs e)
+        // --------------------DEBUG FOR MAIL DELIVERY--------------------
+
+        //debug for mail
+        private void OnUpdateTicked(object sender, StardewModdingAPI.Events.UpdateTickedEventArgs e)
         {
-            // Did the player open our letter?
-            if (Game1.player.mailReceived.Contains("Hatstravaganza.HatBoxMail") &&
-                !Game1.player.mailReceived.Contains("Hatstravaganza.HatBoxGiven"))
+            // Only run when world ready and once per second-ish to avoid spam
+            if (!Context.IsWorldReady)
+                return;
+
+            // throttle: run every 60 ticks (~1 second)
+            if (e.Ticks % 60 != 0)
+                return;
+
+            // sanity
+            if (Game1.player == null)
+                return;
+
+            const string mailId = "Hatstravaganza.HatBoxMail";
+            const string givenFlag = "Hatstravaganza.HatBoxGiven";
+
+            // If player has read the mail but we haven't given the box yet
+            if (Game1.player.mailReceived.Contains(mailId) &&
+                !Game1.player.mailReceived.Contains(givenFlag))
             {
-                Monitor.Log("Hat Box mail detected as read — giving Hat Box!", LogLevel.Info);
+                Monitor.Log("Detected Hat Box mail in mailReceived — giving Hat Box now.", LogLevel.Info);
 
                 GivePlayerHatBox();
 
-                // Prevent duplicates
-                Game1.player.mailReceived.Add("Hatstravaganza.HatBoxGiven");
+                // mark so we don't give it again
+                Game1.player.mailReceived.Add(givenFlag);
             }
         }
-
-
 
 
     }

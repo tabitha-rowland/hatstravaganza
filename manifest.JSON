@@ -2,8 +2,8 @@
     "Name": "Hatstravaganza",
     "Author": "Tabitha Rowland",
     "Version": "1.0.0",
-    "Description": "Mod for gifting special hats to NPCs",
-    "UniqueID": "tabithahatstravaganza",
+    "Description": "Gift decorative hats to NPCs that they'll wear around town!",
+    "UniqueID": "TabithaRowland.Hatstravaganza",
     "EntryDll": "hatstravaganza.dll",
     "MinimumApiVersion": "4.0.0",
     "UpdateKeys": []

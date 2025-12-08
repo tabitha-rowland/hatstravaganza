@@ -42,25 +42,22 @@ namespace Hatstravaganza
 
             // monitor.Log("Initializing HatRenderer...", LogLevel.Info);
 
-            // Initialize defaults
+            // Initialize dictionaries 
             defaultOffsets = new NPCHatOffsets();
             npcOffsets = new Dictionary<string, NPCHatOffsets>();
-            hatTextures = new Dictionary<string, Texture2D>();  // Initialize hat dictionary
+            hatTextures = new Dictionary<string, Texture2D>();
             itemIdToHatName = new Dictionary<string, string>();
             itemIcons = new Dictionary<string, Texture2D>();
 
             offsetsFilePath = Path.Combine(helper.DirectoryPath, "hat-offsets.json");
 
-            // LoadHatRegistry();   // Load first
-            LoadHatSprites();    // Then load textures
+            LoadHatSprites();
             LoadHatOffsets();
             // monitor.Log($"Hat offsets have been called and run", LogLevel.Info);
 
         }
 
-        /// <summary>
-        /// Get hat name from item ID
-        /// </summary>
+        // Get hat name from item ID
         public string GetHatNameFromItemId(string itemId)
         {
             if (itemIdToHatName.ContainsKey(itemId))
@@ -70,7 +67,7 @@ namespace Hatstravaganza
             return null;
         }
 
-
+        // load hat sprites from assets folder
         private void LoadHatSprites()
         {
             try
@@ -126,7 +123,6 @@ namespace Hatstravaganza
                             itemIdToHatName[itemId] = hatName;
 
                             // Extract item icon
-                            // In HatRenderer LoadHatSprites, after extracting icon:
                             Texture2D icon = ExtractItemIcon(texture);
                             if (icon != null)
                             {
@@ -156,9 +152,7 @@ namespace Hatstravaganza
             }
         }
 
-        /// <summary>
-        /// Get item icon texture for a hat
-        /// </summary>
+        // Get item icon texture for a hat
         public Texture2D GetItemIcon(string itemId)
         {
             if (itemIcons.ContainsKey(itemId))
@@ -168,7 +162,7 @@ namespace Hatstravaganza
             return null;
         }
 
-
+        // Extract 16x16 item icon from hat sprite
         private Texture2D ExtractItemIcon(Texture2D hatSprite)
         {
             try
@@ -212,6 +206,84 @@ namespace Hatstravaganza
 
             return string.Join(" ", words);
         }
+
+        // draw hat
+        public void DrawHatOnNPC(NPC npc, string hatName, SpriteBatch spriteBatch)
+        {
+
+            // Get the correct texture for this hat
+            if (!hatTextures.ContainsKey(hatName))
+            {
+                monitor.Log($"No texture found for hat: {hatName}", LogLevel.Warn);
+                return;
+            }
+
+            Texture2D hatTexture = hatTextures[hatName];
+
+            if (hatTexture == null)
+                return;
+
+            int direction = npc.FacingDirection;
+
+            // Remap Stardew directions to your sprite sheet order
+            int spriteFrame = direction switch
+            {
+                2 => 0,  // Down -> frame 0
+                0 => 1,  // Up -> frame 1
+                3 => 2,  // Left -> frame 2
+                1 => 3,  // Right -> frame 3
+                _ => 0   // Default to down
+            };
+
+            Rectangle sourceRect = new Rectangle(spriteFrame * 16, 0, 16, 16);
+
+
+            Vector2 npcPosition = npc.getLocalPosition(Game1.viewport);
+
+            // Add animation offsets
+            npcPosition.Y += npc.yJumpOffset;
+
+            // Add walking bob animation
+
+            if (npc.Sprite != null && npc.Sprite.currentFrame % 2 == 1 && npc.Name != "George") // Exclude George from bobbing because of wheelchair
+            {
+                npcPosition.Y -= -4;
+            }
+
+            HatOffset offset = GetOffsetForNPC(npc.Name, direction);
+
+            float hatScale = 3f;
+            float npcSpriteWidth = 64f;
+            float hatWidth = 16f * hatScale;
+            float centerOffset = (npcSpriteWidth - hatWidth) / 2f;
+
+
+            Vector2 hatPosition = new Vector2(
+           npcPosition.X + centerOffset + (offset.X * 4f),
+           npcPosition.Y + (offset.Y * 4f) + 10  
+            );
+
+            float layerDepth = (npc.Position.Y + 128f) / 10000f;
+
+            spriteBatch.Draw(
+                hatTexture,
+                hatPosition,
+                sourceRect,
+                Color.White,
+                0f,
+                Vector2.Zero,
+                hatScale,
+                SpriteEffects.None,
+                layerDepth
+            );
+        }
+        // get all registered hat item IDs
+        public List<string> GetAllHatItemIds()
+        {
+            return new List<string>(itemIdToHatName.Keys);
+        }
+
+        // Load hat offsets from JSON file
         private void LoadHatOffsets()
         {
             try
@@ -246,29 +318,27 @@ namespace Hatstravaganza
             }
         }
 
-        /// <summary>
-        /// Get the hat offset for a specific NPC and direction
-        /// </summary>
+        // --------------------DEBUG HAT OFFSETS--------------------
+
+        // Get the hat offset for a specific NPC and direction
         private HatOffset GetOffsetForNPC(string npcName, int direction)
         {
-            // Check if we have custom offsets for this NPC
+            // Check for custom offsets for this NPC
             if (npcOffsets.ContainsKey(npcName))
             {
                 return npcOffsets[npcName].GetOffsetForDirection(direction);
             }
 
-            // Fall back to default offsets
+            // use default offsets if none found
             return defaultOffsets.GetOffsetForDirection(direction);
         }
 
-        /// <summary>
-        /// Adjust offset for an NPC in real-time
-        /// </summary>
+        // Adjust offset for an NPC in real-time
         public bool AdjustOffset(string npcName, string directionStr, string axis, int amount)
         {
             try
             {
-                // Ensure NPC exists in dictionary
+                //  npc exists in dictionary?
                 if (!npcOffsets.ContainsKey(npcName))
                 {
                     monitor.Log($"Creating new offset entry for {npcName}", LogLevel.Debug);
@@ -322,9 +392,8 @@ namespace Hatstravaganza
             }
         }
 
-        /// <summary>
-        /// Save current offsets to JSON file
-        /// </summary>
+        // Save current offsets to JSON file
+
         public bool SaveCurrentOffsets()
         {
             try
@@ -342,9 +411,7 @@ namespace Hatstravaganza
             }
         }
 
-        /// <summary>
-        /// Show current offsets for an NPC
-        /// </summary>
+        // Show current offsets for an NPC
         public void ShowOffsets(string npcName)
         {
             if (!npcOffsets.ContainsKey(npcName))
@@ -365,85 +432,6 @@ namespace Hatstravaganza
             monitor.Log($"  Right: X={offsets.Right.X}, Y={offsets.Right.Y}", LogLevel.Info);
         }
 
-        public void DrawHatOnNPC(NPC npc, string hatName, SpriteBatch spriteBatch)
-        {
-
-            // Get the correct texture for this hat
-            if (!hatTextures.ContainsKey(hatName))
-            {
-                monitor.Log($"No texture found for hat: {hatName}", LogLevel.Warn);
-                return;
-            }
-
-            Texture2D hatTexture = hatTextures[hatName];
-
-            if (hatTexture == null)
-                return;
-
-            int direction = npc.FacingDirection;
-
-            // Remap Stardew directions to your sprite sheet order
-            int spriteFrame = direction switch
-            {
-                2 => 0,  // Down -> frame 0
-                0 => 1,  // Up -> frame 1
-                3 => 2,  // Left -> frame 2
-                1 => 3,  // Right -> frame 3
-                _ => 0   // Default to down
-            };
-
-            Rectangle sourceRect = new Rectangle(spriteFrame * 16, 0, 16, 16);
-
-
-            Vector2 npcPosition = npc.getLocalPosition(Game1.viewport);
-
-            // Add animation offsets
-            npcPosition.Y += npc.yJumpOffset;
-
-            // Add walking bob animation
-
-            if (npc.Sprite != null && npc.Sprite.currentFrame % 2 == 1 && npc.Name != "George") // Exclude George from bobbing because of wheelchair
-            {
-                npcPosition.Y -= -4;
-            }
-
-            HatOffset offset = GetOffsetForNPC(npc.Name, direction);
-
-            float hatScale = 3f;
-            float npcSpriteWidth = 64f;
-            float hatWidth = 16f * hatScale;
-            float centerOffset = (npcSpriteWidth - hatWidth) / 2f;
-
-
-            Vector2 hatPosition = new Vector2(
-           npcPosition.X + centerOffset + (offset.X * 4f),
-           npcPosition.Y + (offset.Y * 4f) + 10  // Add extra +10 for testing
-            );
-
-
-
-
-
-            float layerDepth = (npc.Position.Y + 128f) / 10000f;
-
-            spriteBatch.Draw(
-                hatTexture,
-                hatPosition,
-                sourceRect,
-                Color.White,
-                0f,
-                Vector2.Zero,
-                hatScale,
-                SpriteEffects.None,
-                layerDepth
-            );
-        }
-        /// <summary>
-        /// Get all registered hat item IDs
-        /// </summary>
-        public List<string> GetAllHatItemIds()
-        {
-            return new List<string>(itemIdToHatName.Keys);
-        }
+        
     }
 }
