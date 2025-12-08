@@ -47,7 +47,7 @@ To add your own hat art to the game,
 ### Limitations
 You can only have custom hat options equal to the amount of slots in a chest (36). Follow **Adding Your Own Hats** and delete an older hat to make room. 
 
-### Bugs For Furutre Fixes
+### Bugs For Future Fixes
 There are a few minor bugs that have been allowed to survive due to time constraints. Here are some I am aware of. If you find more, let me know!
 
 >Some NPC sprite animations are not compatible with this mod. For example, Mayor Lewis works in his garden kneeling which causes his hat to float. 
