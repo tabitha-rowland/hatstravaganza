@@ -207,6 +207,7 @@ namespace Hatstravaganza
             return string.Join(" ", words);
         }
 
+
         // draw hat
         public void DrawHatOnNPC(NPC npc, string hatName, SpriteBatch spriteBatch)
         {

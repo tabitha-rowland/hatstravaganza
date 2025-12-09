@@ -36,7 +36,7 @@
 Installation is as easy as any other Stardew Valley mod. Use SMAPI to download and install or manually place the folder into your Stardew Valley mods subfolder. 
 
 ### Adding Your Own Hats
-**Requirements:** a **16x64** png file of your hat art including 4 rederings of the hat. The png is made of 4 16x16 squares. These follow the following order: front, left side, back, right side.
+**Requirements:** a **16x64** png file of your hat art including 4 renderings of the hat. The png is made of 4 16x16 squares. These follow the following order: front, left side, back, right side.
 
 To add your own hat art to the game, 
 1. Exit the game if open.
@@ -47,7 +47,7 @@ To add your own hat art to the game,
 ### Limitations
 You can only have custom hat options equal to the amount of slots in a chest (36). Follow **Adding Your Own Hats** and delete an older hat to make room. 
 
-### Bugs For Furutre Fixes
+### Bugs For Future Fixes
 There are a few minor bugs that have been allowed to survive due to time constraints. Here are some I am aware of. If you find more, let me know!
 
 >Some NPC sprite animations are not compatible with this mod. For example, Mayor Lewis works in his garden kneeling which causes his hat to float. 
